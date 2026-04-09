@@ -1,0 +1,246 @@
+ADDITIONAL CORE SYSTEMS (REQUIRED)
+OFFLINE PROGRESS SYSTEM
+
+The game must support offline idle earnings.
+
+Logic:
+
+offlineTime = currentTime - lastSaved
+maxOfflineTime = 8 hours
+
+offlineSeconds = min(offlineTime, maxOfflineTime)
+
+offlineEarnings = passiveIncome * offlineSeconds
+
+When player opens the game:
+
+Show modal:
+
+"While you were away…"
+
+Display:
+
+time away
+money earned
+passive income rate
+
+Buttons:
+
+Collect
+Watch Ad to Double Reward
+
+Watching the ad doubles offline earnings.
+
+DAILY LOGIN REWARDS
+
+Implement a 7-day daily login reward system.
+
+Show popup on first login of the day.
+
+Rewards:
+
+Day	Reward
+1	₴200
+2	₴500
+3	+10 Health
+4	₴1000
+5	+5 Reputation
+6	₴2500
+7	Special Item: Golden Boots (+20% work income permanently)
+
+If player misses a day → reset streak.
+
+Save progress in localStorage.
+
+ACHIEVEMENT SYSTEM
+
+Add an achievement system with at least 20 achievements.
+
+Examples:
+
+Achievement	Condition	Reward
+First Money	Earn ₴100	+₴100
+Hard Worker	200 work clicks	+10 XP
+Village Hero	Reputation 80	+₴500
+Corrupt Official	Corruption 80	+₴700
+Businessman	Own 3 businesses	+₴1500
+Oligarch	Earn ₴1,000,000	+₴5000
+
+Show achievement popup with animation.
+
+Add Achievements screen in Settings tab.
+
+ECONOMY BALANCING RULES
+
+Ensure long-term progression.
+
+Early game earnings:
+
+₴10 – ₴100
+
+Mid game:
+
+₴1000 – ₴10000
+
+Late game:
+
+₴100000+
+
+Business cost scaling formula:
+
+cost = baseCost * (1.8 ^ upgradeLevel)
+
+Skill upgrade scaling:
+
+skillCost = baseCost * (1.5 ^ currentLevel)
+
+Ensure the player needs 3–5 hours to reach Stage 3.
+
+SOUND EFFECTS
+
+Add basic sound system.
+
+Required sounds:
+
+work_click
+coin_gain
+level_up
+event_popup
+purchase
+achievement_unlock
+
+Use simple audio files and play via HTML5 Audio API.
+
+Add toggle in settings:
+
+Sound ON/OFF
+Music ON/OFF
+OFFLINE NOTIFICATION SYSTEM
+
+When player returns after long time:
+
+Show summary card:
+
+While you were away for 3h 20m
+
+Passive income generated:
+₴3,400
+
+Businesses worked hard!
+
+Button:
+
+Collect
+
+Optional:
+
+Watch Ad → double earnings
+AD MONETIZATION SYSTEM (UI SIMULATION)
+
+Add ad placeholder logic.
+
+Rewarded ads:
+
+Watch Ad → ₴1000 bonus
+Watch Ad → Double offline earnings
+Watch Ad → Restore full health
+
+Interstitial ads:
+
+Trigger every:
+
+4 minutes of active gameplay
+
+Show simple modal placeholder:
+
+Ad Placeholder
+ACHIEVEMENT SHARING (VIRAL MECHANIC)
+
+Add share buttons on achievements.
+
+Example:
+
+Share your success!
+
+"I became an OLIGARCH in Українець: Шлях До Успіху"
+
+Copy text button.
+
+Prepare system for future social sharing.
+
+DAILY TASK SYSTEM
+
+Add rotating daily tasks.
+
+Examples:
+
+Task	Reward
+Work 20 shifts	₴300
+Upgrade skill	+15 XP
+Buy food	+5 health
+Earn ₴1000	₴200
+
+Reset every 24 hours.
+
+SETTINGS SCREEN
+
+Add settings menu.
+
+Options:
+
+New Game
+Sound toggle
+Music toggle
+Achievements list
+Statistics
+
+Statistics:
+
+Total Money Earned
+Total Work Clicks
+Businesses Owned
+Days Played
+Highest Reputation
+Highest Corruption
+MOBILE OPTIMIZATION
+
+The UI must be mobile-first.
+
+Requirements:
+
+max-width: 430px
+centered layout on desktop
+touch friendly buttons
+minimum button height: 56px
+
+Support portrait orientation.
+
+FUTURE MOBILE EXPORT
+
+Structure code so it can be exported later as a mobile app using:
+
+Capacitor
+or
+React Native wrapper
+
+Ensure no browser-only APIs break mobile compatibility.
+
+FINAL REQUIREMENTS
+
+The game must include:
+
+✔ working clicker mechanic
+✔ passive income system
+✔ skills affecting gameplay
+✔ random events system
+✔ businesses with upgrades
+✔ save/load system via localStorage
+✔ offline progress
+✔ achievements
+✔ daily rewards
+✔ monetization stubs
+✔ mobile-first UI
+
+All gameplay features must be fully functional.
+
+The game must run completely in browser with no backend.
