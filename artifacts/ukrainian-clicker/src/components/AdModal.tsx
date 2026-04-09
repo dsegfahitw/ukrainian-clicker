@@ -1,9 +1,10 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import type { AdModalType } from "@/hooks/useGameState";
 
 interface AdModalProps {
-  type: string | null;
-  onWatchAd: (type: "offline_double" | "money_bonus" | "health_restore") => void;
+  type: AdModalType;
+  onWatchAd: (type: AdModalType) => void;
   onDismiss: () => void;
 }
 
@@ -13,13 +14,13 @@ export function AdModal({ type, onWatchAd, onDismiss }: AdModalProps) {
   useEffect(() => {
     if (!type) return;
     setCountdown(5);
-    const interval = setInterval(() => {
+    const timer = setInterval(() => {
       setCountdown((prev) => {
-        if (prev <= 1) { clearInterval(interval); return 0; }
+        if (prev <= 1) { clearInterval(timer); return 0; }
         return prev - 1;
       });
     }, 1000);
-    return () => clearInterval(interval);
+    return () => clearInterval(timer);
   }, [type]);
 
   return (
@@ -40,49 +41,46 @@ export function AdModal({ type, onWatchAd, onDismiss }: AdModalProps) {
             {type === "interstitial" ? (
               <>
                 <div className="text-6xl mb-4">📺</div>
-                <h2 className="text-white font-heading text-lg uppercase mb-2">
-                  Рекламна пауза
-                </h2>
-                <div className="bg-white/10 h-32 flex items-center justify-center mb-4" style={{ borderRadius: "2px" }}>
-                  <span className="text-white/40 text-sm">[ РЕКЛАМА ТУТ ]</span>
+                <h2 className="text-white font-heading text-lg uppercase mb-2">Рекламна пауза</h2>
+                <p className="text-white/50 text-xs mb-3">Ваша гра підтримується рекламою</p>
+                <div className="bg-white/10 h-28 flex items-center justify-center mb-4" style={{ borderRadius: "2px" }}>
+                  <span className="text-white/40 text-sm font-heading uppercase">[ Реклама ]</span>
                 </div>
                 <button
                   onClick={onDismiss}
                   disabled={countdown > 0}
-                  className={`w-full py-2 font-heading text-sm uppercase border transition-all ${
-                    countdown > 0 ? "bg-white/20 text-white/40 border-white/20" : "bg-accent text-foreground border-accent active:scale-95"
+                  className={`w-full py-3 font-heading text-sm uppercase border-2 transition-all ${
+                    countdown > 0
+                      ? "bg-white/10 text-white/30 border-white/10 cursor-not-allowed"
+                      : "bg-accent text-foreground border-accent active:scale-95 cursor-pointer"
                   }`}
                   style={{ borderRadius: "2px" }}
                 >
-                  {countdown > 0 ? `Закрити (${countdown})` : "Закрити"}
+                  {countdown > 0 ? `Зачекайте ${countdown}с...` : "✓ Закрити"}
                 </button>
               </>
             ) : (
               <>
-                <div className="text-6xl mb-4">📺</div>
-                <h2 className="text-white font-heading text-lg uppercase mb-2">
-                  Переглянути рекламу
-                </h2>
+                <div className="text-6xl mb-4">🎁</div>
+                <h2 className="text-white font-heading text-lg uppercase mb-2">Бонус за рекламу</h2>
+                <p className="text-white/50 text-xs mb-4">Перегляньте рекламу та отримайте нагороду</p>
                 <div className="space-y-2 mb-4">
                   <button
-                    onClick={() => onWatchAd("money_bonus")}
-                    className="w-full py-2.5 bg-accent text-foreground font-heading text-sm uppercase border-2 border-accent active:scale-95 transition-all"
+                    onClick={() => onWatchAd("rewarded")}
+                    className="w-full py-3 bg-accent text-foreground font-heading text-sm uppercase border-2 border-foreground active:scale-95 transition-all"
                     style={{ borderRadius: "2px" }}
                   >
-                    📺 +₴1,000 бонус
+                    📺 Дивитись → +₴1,000
                   </button>
                   <button
-                    onClick={() => onWatchAd("health_restore")}
-                    className="w-full py-2.5 bg-red-700 text-white font-heading text-sm uppercase border-2 border-red-900 active:scale-95 transition-all"
+                    onClick={() => onWatchAd("rewarded")}
+                    className="w-full py-3 bg-red-700 text-white font-heading text-sm uppercase border-2 border-red-900 active:scale-95 transition-all"
                     style={{ borderRadius: "2px" }}
                   >
-                    📺 Відновити здоров'я
+                    📺 Дивитись → Повне HP
                   </button>
                 </div>
-                <button
-                  onClick={onDismiss}
-                  className="text-white/40 text-xs font-heading uppercase"
-                >
+                <button onClick={onDismiss} className="text-white/40 text-xs font-heading uppercase hover:text-white/60 transition-colors py-1">
                   Пропустити
                 </button>
               </>

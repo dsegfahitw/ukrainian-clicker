@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { marketItems } from "@/data/market";
 import type { GameState } from "@/hooks/useGameState";
@@ -7,8 +8,8 @@ interface MarketTabProps {
   onBuy: (itemId: string, price: number, effect: { health?: number; reputation?: number; permanent?: string }) => void;
 }
 
-export function MarketTab({ state, onBuy }: MarketTabProps) {
-  const hagglingDiscount = 1 - state.skills.haggling * 0.1;
+function MarketTabInner({ state, onBuy }: MarketTabProps) {
+  const hagglingDiscount = 1 - (state.skills.haggling || 0) * 0.1;
 
   return (
     <div className="p-4 pb-24 scrollbar-hide overflow-y-auto max-h-[calc(100vh-120px)]">
@@ -24,18 +25,23 @@ export function MarketTab({ state, onBuy }: MarketTabProps) {
         </div>
       )}
 
+      {state.skills.haggling > 0 && (
+        <div className="mb-3 text-center text-xs text-green-700 font-heading bg-green-50 border border-green-300 py-1.5" style={{ borderRadius: "2px" }}>
+          🤝 Знижка торгівлі: -{(state.skills.haggling || 0) * 10}%
+        </div>
+      )}
+
       <div className="space-y-2">
         {marketItems.map((item) => {
           const price = Math.floor(item.basePrice * state.marketPriceMultiplier * hagglingDiscount);
           const canAfford = state.money >= price;
-          const alreadyOwned = item.effect.permanent && state.permanentBonuses.includes(item.effect.permanent);
-          const isHealthFull = item.consumable && item.effect.health && state.health >= 100;
+          const alreadyOwned = !!(item.effect.permanent && state.permanentBonuses.includes(item.effect.permanent));
+          const isHealthFull = !!(item.consumable && item.effect.health && state.health >= 100);
 
           return (
             <motion.div
               key={item.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              layout
               className={`border-game p-3 flex items-center gap-3 ${alreadyOwned ? "bg-green-50 opacity-60" : "bg-card"}`}
               style={{ borderRadius: "2px" }}
             >
@@ -44,20 +50,20 @@ export function MarketTab({ state, onBuy }: MarketTabProps) {
                 <h3 className="font-heading text-xs uppercase">{item.name}</h3>
                 <p className="text-[10px] text-foreground/50">{item.description}</p>
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <div className="text-xs font-bold text-foreground mb-1">₴{price}</div>
                 {alreadyOwned ? (
-                  <span className="text-[10px] text-green-700 font-heading">Є</span>
+                  <span className="text-[10px] text-green-700 font-heading">✓ Є</span>
                 ) : (
                   <button
                     onClick={() => onBuy(item.id, item.basePrice, item.effect)}
-                    disabled={!canAfford || !!isHealthFull}
-                    className={`px-3 py-1 font-heading text-[10px] uppercase border transition-all active:scale-95 ${
+                    disabled={!canAfford || isHealthFull}
+                    className={`px-3 py-1.5 font-heading text-[10px] uppercase border transition-all active:scale-95 ${
                       canAfford && !isHealthFull
                         ? "bg-primary text-primary-foreground border-foreground"
                         : "bg-foreground/10 text-foreground/30 border-foreground/20"
                     }`}
-                    style={{ borderRadius: "2px" }}
+                    style={{ borderRadius: "2px", minHeight: "32px" }}
                   >
                     Купити
                   </button>
@@ -67,12 +73,8 @@ export function MarketTab({ state, onBuy }: MarketTabProps) {
           );
         })}
       </div>
-
-      {state.skills.haggling > 0 && (
-        <div className="mt-4 text-center text-xs text-foreground/40">
-          Знижка торгівлі: -{state.skills.haggling * 10}%
-        </div>
-      )}
     </div>
   );
 }
+
+export const MarketTab = memo(MarketTabInner);

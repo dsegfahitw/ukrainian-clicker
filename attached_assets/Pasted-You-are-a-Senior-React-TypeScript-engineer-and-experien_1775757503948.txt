@@ -1,0 +1,308 @@
+You are a Senior React / TypeScript engineer and experienced mobile game developer.
+
+Your task is to **review, test, refactor, optimize, and finalize the entire project** for the mobile clicker game:
+
+"Українець: Шлях До Успіху"
+
+The game has already been generated, but it must now be treated as a **production-ready project**.
+
+Act like a **senior engineer doing a full code audit and optimization pass.**
+
+---
+
+# STEP 1 — FULL PROJECT AUDIT
+
+Carefully analyze the entire project:
+
+* React architecture
+* state management
+* hooks
+* game math
+* event system
+* UI components
+* performance
+* mobile responsiveness
+* data structures
+* save/load system
+* code duplication
+* unnecessary renders
+* memory leaks
+
+Then fix any problems you find.
+
+---
+
+# STEP 2 — GAMEPLAY TESTING
+
+Simulate gameplay scenarios and validate the systems:
+
+Test:
+
+* work clicking
+* skill upgrades
+* job switching
+* passive income calculations
+* event triggers
+* stage progression
+* XP leveling
+* business purchases
+* corruption / reputation mechanics
+* health depletion
+* game over conditions
+* offline earnings
+* daily rewards
+* achievements
+
+Fix any logic bugs or broken interactions.
+
+Make sure the gameplay loop always feels rewarding and functional.
+
+---
+
+# STEP 3 — ECONOMY BALANCE
+
+Analyze the economic progression.
+
+Ensure:
+
+Early game:
+
+* player earns first business within 5–10 minutes
+
+Mid game:
+
+* passive income becomes main driver
+
+Late game:
+
+* upgrades require strategic choices
+
+Adjust formulas if needed.
+
+Validate formulas like:
+
+XP scaling
+business upgrade scaling
+skill upgrade scaling
+passive income growth
+
+Ensure the game stays engaging for **at least 2–3 hours of playtime**.
+
+---
+
+# STEP 4 — PERFORMANCE OPTIMIZATION
+
+Optimize rendering and state updates.
+
+Ensure:
+
+* minimal React re-renders
+* memoized components where appropriate
+* expensive calculations moved to hooks
+* interval timers cleaned up properly
+* no memory leaks
+
+Use:
+
+React.memo
+useMemo
+useCallback
+
+when appropriate.
+
+Avoid unnecessary component re-renders.
+
+---
+
+# STEP 5 — MOBILE UX POLISH
+
+Improve the mobile experience.
+
+Ensure:
+
+* tap targets ≥ 56px
+* spacing optimized for thumbs
+* text readable on small screens
+* UI works perfectly at width 360–430px
+
+Improve:
+
+animations
+button feedback
+event popup UX
+navigation clarity
+
+The game should feel smooth on a phone.
+
+---
+
+# STEP 6 — UI/UX POLISH
+
+Improve UI consistency.
+
+Ensure:
+
+* consistent spacing
+* consistent typography
+* clear hierarchy
+* smooth animations using Framer Motion
+* polished progress bars
+* satisfying coin gain feedback
+
+Add subtle polish like:
+
+* floating coin animations
+* level-up celebration animation
+* achievement unlock animation
+
+---
+
+# STEP 7 — DATA STRUCTURE CLEANUP
+
+Ensure all game data is cleanly structured.
+
+Game data must be stored in:
+
+src/app/data/
+
+events.ts
+jobs.ts
+businesses.ts
+skills.ts
+market.ts
+
+Use typed interfaces.
+
+Example:
+
+```ts
+interface Job {
+  id: string
+  name: string
+  levelRequired: number
+  earnings: number
+  healthCost: number
+}
+```
+
+Avoid hardcoded values inside components.
+
+---
+
+# STEP 8 — SAVE SYSTEM HARDENING
+
+Ensure the save system is reliable.
+
+Requirements:
+
+* autosave every 30 seconds
+* autosave on important actions
+* autosave on tab switch
+* autosave on page unload
+
+Prevent corrupted saves.
+
+Add versioning:
+
+```ts
+saveVersion: 1
+```
+
+If save schema changes in future versions,
+handle migration safely.
+
+---
+
+# STEP 9 — OFFLINE PROGRESS VALIDATION
+
+Ensure offline income works correctly.
+
+Test cases:
+
+Player returns after:
+
+5 minutes
+1 hour
+8 hours
+24 hours
+
+Cap offline earnings at 8 hours.
+
+Display clear summary modal.
+
+---
+
+# STEP 10 — CODE REFACTORING
+
+Refactor the codebase to production quality.
+
+Ensure:
+
+* clear file organization
+* readable variable names
+* consistent TypeScript typing
+* modular components
+* reusable hooks
+
+Follow best practices for React + TypeScript architecture.
+
+---
+
+# STEP 11 — ERROR HANDLING
+
+Add proper error handling.
+
+Examples:
+
+* corrupted localStorage
+* missing save data
+* NaN values in economy
+* unexpected game states
+
+Prevent crashes.
+
+---
+
+# STEP 12 — FUTURE SCALABILITY
+
+Prepare the codebase for future features.
+
+Ensure architecture allows easy addition of:
+
+* more events
+* more businesses
+* more skills
+* monetization systems
+* localization
+
+Avoid rigid or hardcoded systems.
+
+---
+
+# STEP 13 — FINAL POLISH
+
+After all fixes:
+
+Ensure the game:
+
+✔ loads instantly
+✔ plays smoothly
+✔ autosaves reliably
+✔ feels satisfying to click
+✔ has no broken mechanics
+✔ is mobile-friendly
+✔ is cleanly structured
+
+The final result should feel like a **complete indie idle game MVP**.
+
+---
+
+# OUTPUT REQUIREMENT
+
+After finishing improvements:
+
+1. Provide the updated code structure.
+2. Apply improvements directly to the project.
+3. Ensure the game runs without errors.
+
+The result should be a **clean, optimized, production-quality React clicker game.**

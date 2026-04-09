@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useGameState } from "@/hooks/useGameState";
 import { usePassiveIncome } from "@/hooks/usePassiveIncome";
 import { useSound } from "@/hooks/useSound";
@@ -57,10 +57,6 @@ function App() {
     game.buyMarketItem(itemId, price, effect, () => play("purchase"));
   }, [game.buyMarketItem, play]);
 
-  const handleEventPopup = useCallback((idx: number) => {
-    game.handleEventChoice(idx);
-  }, [game.handleEventChoice]);
-
   const handleClaimTask = useCallback((taskId: string) => {
     const today = new Date().toISOString().split("T")[0];
     const tasks = getDailyTasksForDate(today);
@@ -68,60 +64,27 @@ function App() {
     if (task) game.claimDailyTask(taskId, task);
   }, [game.claimDailyTask]);
 
-  const unclaimedTasks = game.state.dailyTaskProgress.filter((p) => p.completed && !p.claimedReward).length;
+  const unclaimedTasks = game.state.dailyTaskProgress.filter(
+    (p) => p.completed && !p.claimedReward
+  ).length;
 
   return (
     <div className="min-h-screen bg-background max-w-[430px] mx-auto relative overflow-hidden">
+      {/* Sticky Resource Header */}
       <div className="bg-card border-b-2 border-foreground p-2 grid grid-cols-2 gap-x-3 gap-y-1 sticky top-0 z-30">
-        <ResourceBar
-          icon="💰"
-          value={game.state.money}
-          maxValue={1000000}
-          color="#ffd700"
-          label="Гроші"
-          showExact
-        />
-        <ResourceBar
-          icon="❤️"
-          value={game.state.health}
-          maxValue={100}
-          color="#ff4444"
-          label="Здоров'я"
-        />
-        <ResourceBar
-          icon="⭐"
-          value={game.state.reputation}
-          maxValue={100}
-          color="#ffaa00"
-          label="Репутація"
-        />
+        <ResourceBar icon="💰" value={game.state.money} maxValue={1_000_000} color="#ffd700" label="Гроші" showExact />
+        <ResourceBar icon="❤️" value={game.state.health} maxValue={100} color="#ff4444" label="Здоров'я" />
+        <ResourceBar icon="⭐" value={game.state.reputation} maxValue={100} color="#ffaa00" label="Репутація" />
         <CorruptionScale value={game.state.corruption} />
       </div>
 
+      {/* Tab Content */}
       <div className="pb-16">
-        {activeTab === "life" && (
-          <LifeTab
-            state={game.state}
-            onWork={handleWork}
-            getLevelXpNeeded={game.getLevelXpNeeded}
-          />
-        )}
-        {activeTab === "work" && (
-          <WorkTab state={game.state} onSelectJob={game.setActiveJob} />
-        )}
-        {activeTab === "business" && (
-          <BusinessTab
-            state={game.state}
-            onBuy={handleBuyBusiness}
-            onUpgrade={handleUpgradeBusiness}
-          />
-        )}
-        {activeTab === "skills" && (
-          <SkillsTab state={game.state} onUpgrade={handleUpgradeSkill} />
-        )}
-        {activeTab === "market" && (
-          <MarketTab state={game.state} onBuy={handleBuyMarketItem} />
-        )}
+        {activeTab === "life" && <LifeTab state={game.state} onWork={handleWork} />}
+        {activeTab === "work" && <WorkTab state={game.state} onSelectJob={game.setActiveJob} />}
+        {activeTab === "business" && <BusinessTab state={game.state} onBuy={handleBuyBusiness} onUpgrade={handleUpgradeBusiness} />}
+        {activeTab === "skills" && <SkillsTab state={game.state} onUpgrade={handleUpgradeSkill} />}
+        {activeTab === "market" && <MarketTab state={game.state} onBuy={handleBuyMarketItem} />}
         {activeTab === "settings" && (
           <SettingsTab
             state={game.state}
@@ -129,29 +92,20 @@ function App() {
             onToggleSound={game.toggleSound}
             onToggleMusic={game.toggleMusic}
             onClaimTask={handleClaimTask}
-            onShowAds={() => game.showRewardedAd()}
+            onShowAds={game.showRewardedAd}
           />
         )}
       </div>
 
-      <BottomNav
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        unclaimedTasks={unclaimedTasks}
-      />
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} unclaimedTasks={unclaimedTasks} />
 
+      {/* Floating money animations */}
       <PassiveIncomeTicket floats={game.moneyFloats} />
 
-      <EventPopup
-        isOpen={!!game.currentEvent}
-        event={game.currentEvent}
-        onChoice={handleEventPopup}
-      />
+      {/* Modals — ordered by priority */}
+      <EventPopup isOpen={!!game.currentEvent} event={game.currentEvent} onChoice={game.handleEventChoice} />
 
-      <AchievementPopup
-        achievement={game.achievementQueue[0] ?? null}
-        onDismiss={game.dismissAchievement}
-      />
+      <AchievementPopup achievement={game.achievementQueue[0] ?? null} onDismiss={game.dismissAchievement} />
 
       <OfflineModal
         isOpen={game.showOfflineModal}
@@ -167,11 +121,7 @@ function App() {
         onClaim={game.claimDailyReward}
       />
 
-      <AdModal
-        type={game.showAdModal}
-        onWatchAd={game.watchAdForBonus}
-        onDismiss={game.dismissAd}
-      />
+      <AdModal type={game.showAdModal} onWatchAd={game.watchAdForBonus} onDismiss={game.dismissAd} />
 
       <GameOverModal
         isOpen={game.state.gameOver}
@@ -186,11 +136,7 @@ function App() {
         onRestart={game.resetGame}
       />
 
-      <SaveLoadModal
-        isOpen={game.showResumeModal}
-        onResume={game.resumeGame}
-        onNewGame={game.startNewGame}
-      />
+      <SaveLoadModal isOpen={game.showResumeModal} onResume={game.resumeGame} onNewGame={game.startNewGame} />
 
       <StageUpModal isOpen={game.showStageUp} stage={game.state.stage} />
     </div>

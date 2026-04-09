@@ -78,11 +78,23 @@ export const allDailyTasks: DailyTask[] = [
   },
 ];
 
+/** Seeded pseudo-random number generator (mulberry32) for deterministic daily task selection */
+function mulberry32(seed: number) {
+  let s = seed;
+  return () => {
+    s |= 0; s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function getDailyTasksForDate(dateStr: string): DailyTask[] {
-  const seed = dateStr.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-  const shuffled = [...allDailyTasks].sort(() => {
-    const r = Math.sin(seed) * 10000;
-    return r - Math.floor(r) - 0.5;
-  });
+  const seed = dateStr.split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0);
+  const rand = mulberry32(Math.abs(seed));
+  const shuffled = [...allDailyTasks]
+    .map((t) => ({ t, r: rand() }))
+    .sort((a, b) => a.r - b.r)
+    .map(({ t }) => t);
   return shuffled.slice(0, 3);
 }

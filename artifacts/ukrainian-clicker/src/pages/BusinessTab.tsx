@@ -1,5 +1,7 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { businesses } from "@/data/businesses";
+import { getBusinessUpgradeCost, calculatePassiveIncome } from "@/hooks/useGameState";
 import type { GameState } from "@/hooks/useGameState";
 
 interface BusinessTabProps {
@@ -8,7 +10,7 @@ interface BusinessTabProps {
   onUpgrade: (id: string) => void;
 }
 
-export function BusinessTab({ state, onBuy, onUpgrade }: BusinessTabProps) {
+function BusinessTabInner({ state, onBuy, onUpgrade }: BusinessTabProps) {
   return (
     <div className="p-4 pb-24 scrollbar-hide overflow-y-auto max-h-[calc(100vh-120px)]">
       <h2 className="font-heading text-lg uppercase tracking-wider text-foreground mb-2 text-center" style={{ transform: "rotate(-1deg)" }}>
@@ -18,7 +20,7 @@ export function BusinessTab({ state, onBuy, onUpgrade }: BusinessTabProps) {
       {state.passiveIncome > 0 && (
         <div className="text-center mb-4 bg-green-700/10 border border-green-700/30 p-2" style={{ borderRadius: "2px" }}>
           <span className="text-green-700 font-heading text-sm">
-            +₴{state.passiveIncome < 1 ? state.passiveIncome.toFixed(1) : Math.floor(state.passiveIncome)}/сек
+            ▶ +₴{state.passiveIncome < 1 ? state.passiveIncome.toFixed(1) : Math.floor(state.passiveIncome)}/сек пасивно
           </span>
         </div>
       )}
@@ -29,17 +31,19 @@ export function BusinessTab({ state, onBuy, onUpgrade }: BusinessTabProps) {
           const isLocked = state.level < biz.levelReq;
           const missingSkill = biz.requiredSkill && (state.skills[biz.requiredSkill] || 0) < 1;
           const canBuy = !isLocked && !missingSkill && !owned && state.money >= biz.cost;
-          const upgradeCost = owned ? biz.cost * 3 * owned.level : 0;
+          const upgradeCost = owned ? getBusinessUpgradeCost(biz.cost, owned.level) : 0;
           const canUpgrade = owned && state.money >= upgradeCost;
           const currentIncome = owned
-            ? biz.passiveIncome * Math.pow(2, owned.level - 1) * (1 + state.skills.marketing * 0.1)
+            ? biz.passiveIncome * Math.pow(2, owned.level - 1) * (1 + (state.skills.marketing || 0) * 0.1)
+            : 0;
+          const nextIncome = owned
+            ? biz.passiveIncome * Math.pow(2, owned.level) * (1 + (state.skills.marketing || 0) * 0.1)
             : 0;
 
           return (
             <motion.div
               key={biz.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
+              layout
               className={`border-game p-4 transition-all ${
                 owned ? "bg-green-50 border-green-800" : isLocked || missingSkill ? "bg-foreground/5 opacity-50" : "bg-card"
               }`}
@@ -57,7 +61,7 @@ export function BusinessTab({ state, onBuy, onUpgrade }: BusinessTabProps) {
                     )}
                   </div>
                   <p className="text-xs text-foreground/60 mb-2">{biz.description}</p>
-                  <div className="flex items-center gap-3 text-xs">
+                  <div className="flex items-center gap-3 text-xs flex-wrap">
                     {owned ? (
                       <span className="text-green-700 font-bold">
                         +₴{currentIncome < 1 ? currentIncome.toFixed(1) : Math.floor(currentIncome)}/сек
@@ -70,7 +74,7 @@ export function BusinessTab({ state, onBuy, onUpgrade }: BusinessTabProps) {
                   </div>
                   {biz.requiredSkill && !owned && (
                     <div className="text-[10px] text-foreground/40 mt-1">
-                      Потрібна навичка: {biz.requiredSkill === "accounting" ? "Бухгалтерія" : biz.requiredSkill}
+                      Потрібна: {biz.requiredSkill === "accounting" ? "Бухгалтерія" : biz.requiredSkill}
                     </div>
                   )}
                 </div>
@@ -79,7 +83,7 @@ export function BusinessTab({ state, onBuy, onUpgrade }: BusinessTabProps) {
               {!owned && canBuy && (
                 <button
                   onClick={() => onBuy(biz.id)}
-                  className="w-full mt-3 py-2 bg-green-700 hover:bg-green-600 text-white font-heading text-xs uppercase tracking-wider border-2 border-green-900 active:scale-95 transition-all animate-glow"
+                  className="w-full mt-3 py-2.5 bg-green-700 hover:bg-green-600 text-white font-heading text-xs uppercase tracking-wider border-2 border-green-900 active:scale-95 transition-all"
                   style={{ borderRadius: "2px" }}
                 >
                   Інвестувати ₴{biz.cost.toLocaleString()}
@@ -96,14 +100,15 @@ export function BusinessTab({ state, onBuy, onUpgrade }: BusinessTabProps) {
                 <button
                   onClick={() => onUpgrade(biz.id)}
                   disabled={!canUpgrade}
-                  className={`w-full mt-3 py-2 font-heading text-xs uppercase tracking-wider border-2 active:scale-95 transition-all ${
+                  className={`w-full mt-3 py-2.5 font-heading text-xs uppercase tracking-wider border-2 active:scale-95 transition-all ${
                     canUpgrade
                       ? "bg-accent text-foreground border-foreground hover:bg-accent/80"
                       : "bg-foreground/10 text-foreground/30 border-foreground/20"
                   }`}
                   style={{ borderRadius: "2px" }}
                 >
-                  Покращити ₴{upgradeCost.toLocaleString()} (x2 дохід)
+                  Покращити ₴{upgradeCost.toLocaleString()}
+                  {canUpgrade && <span className="ml-1 opacity-60">(→ ₴{nextIncome < 1 ? nextIncome.toFixed(1) : Math.floor(nextIncome)}/сек)</span>}
                 </button>
               )}
 
@@ -119,3 +124,5 @@ export function BusinessTab({ state, onBuy, onUpgrade }: BusinessTabProps) {
     </div>
   );
 }
+
+export const BusinessTab = memo(BusinessTabInner);

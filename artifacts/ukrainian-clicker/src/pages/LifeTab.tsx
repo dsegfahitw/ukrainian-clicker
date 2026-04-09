@@ -1,5 +1,7 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { StageProgress } from "@/components/StageProgress";
+import { computeWorkEarnings, getLevelXpNeeded } from "@/hooks/useGameState";
 import type { GameState } from "@/hooks/useGameState";
 import { jobs } from "@/data/jobs";
 
@@ -16,31 +18,23 @@ const stageLocationNames = ["Село", "Райцентр", "Обласний ц
 interface LifeTabProps {
   state: GameState;
   onWork: () => void;
-  getLevelXpNeeded: (level: number) => number;
 }
 
-export function LifeTab({ state, onWork, getLevelXpNeeded }: LifeTabProps) {
+function LifeTabInner({ state, onWork }: LifeTabProps) {
   const activeJob = jobs.find((j) => j.id === state.activeJobId) || jobs[0];
-  const farmingBonus = state.skills.farming * 5;
-  const workBootsBonus = state.permanentBonuses.includes("work_earnings_10") ? 0.1 : 0;
-  const baseEarn = activeJob.earnPerShift + farmingBonus;
-  const earn = Math.floor(baseEarn * (1 + workBootsBonus));
+  const earn = computeWorkEarnings(state);
   const xpNeeded = getLevelXpNeeded(state.level);
-  const xpProgress = (state.experience / xpNeeded) * 100;
+  const xpProgress = Math.min(100, (state.experience / xpNeeded) * 100);
 
   return (
     <div className="min-h-full flex flex-col">
       <div
         className="relative flex-1 flex flex-col items-center justify-center py-8"
-        style={{
-          background: stageBackgrounds[state.stage - 1],
-          minHeight: "300px",
-        }}
+        style={{ background: stageBackgrounds[state.stage - 1], minHeight: "300px" }}
       >
         <div className="absolute top-3 left-3 bg-black/30 px-3 py-1 text-white text-xs font-heading uppercase" style={{ borderRadius: "2px" }}>
           📍 {stageLocationNames[state.stage - 1]}
         </div>
-
         <div className="absolute top-3 right-3 bg-black/30 px-3 py-1 text-white text-xs font-heading" style={{ borderRadius: "2px" }}>
           День {state.day}
         </div>
@@ -58,9 +52,11 @@ export function LifeTab({ state, onWork, getLevelXpNeeded }: LifeTabProps) {
             Рівень {state.level}
           </div>
           <div className="w-40 h-2 bg-white/30 mx-auto overflow-hidden" style={{ borderRadius: "2px" }}>
-            <div
-              className="h-full bg-accent transition-all duration-300"
-              style={{ width: `${xpProgress}%`, borderRadius: "1px" }}
+            <motion.div
+              className="h-full bg-accent"
+              style={{ borderRadius: "1px" }}
+              animate={{ width: `${xpProgress}%` }}
+              transition={{ duration: 0.3 }}
             />
           </div>
           <div className="text-white/70 text-[10px] mt-0.5">
@@ -69,12 +65,11 @@ export function LifeTab({ state, onWork, getLevelXpNeeded }: LifeTabProps) {
         </div>
 
         <motion.button
-          whileTap={{ scale: 0.9 }}
-          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.88 }}
           onClick={onWork}
           disabled={state.gameOver}
-          className="relative bg-primary hover:bg-primary/90 text-primary-foreground font-heading text-xl uppercase tracking-wider px-10 py-4 border-4 border-foreground shadow-lg active:shadow-sm transition-all disabled:opacity-50"
-          style={{ borderRadius: "2px" }}
+          className="relative bg-primary hover:bg-primary/90 text-primary-foreground font-heading text-xl uppercase tracking-wider px-10 py-5 border-4 border-foreground shadow-lg transition-colors disabled:opacity-50"
+          style={{ borderRadius: "2px", minHeight: "64px" }}
         >
           <span className="mr-2">💪</span>
           Працювати
@@ -83,9 +78,12 @@ export function LifeTab({ state, onWork, getLevelXpNeeded }: LifeTabProps) {
           </div>
         </motion.button>
 
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-3 flex items-center gap-3 flex-wrap justify-center">
           <span className="text-white/80 text-xs bg-black/30 px-2 py-1" style={{ borderRadius: "2px" }}>
             {activeJob.emoji} {activeJob.name}
+          </span>
+          <span className="text-white/80 text-xs bg-black/30 px-2 py-1" style={{ borderRadius: "2px" }}>
+            -{activeJob.healthCost} HP/зміну
           </span>
           <span className="text-white/80 text-xs bg-black/30 px-2 py-1" style={{ borderRadius: "2px" }}>
             Змін: {state.workClicks}
@@ -94,7 +92,7 @@ export function LifeTab({ state, onWork, getLevelXpNeeded }: LifeTabProps) {
 
         {state.passiveIncome > 0 && (
           <div className="mt-2 text-green-300 text-xs font-heading bg-black/30 px-3 py-1" style={{ borderRadius: "2px" }}>
-            +₴{state.passiveIncome < 1 ? state.passiveIncome.toFixed(1) : Math.floor(state.passiveIncome)}/сек
+            ▶ +₴{state.passiveIncome < 1 ? state.passiveIncome.toFixed(1) : Math.floor(state.passiveIncome)}/сек
           </div>
         )}
       </div>
@@ -103,3 +101,5 @@ export function LifeTab({ state, onWork, getLevelXpNeeded }: LifeTabProps) {
     </div>
   );
 }
+
+export const LifeTab = memo(LifeTabInner);
