@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Українець: Шлях До Успіху"
+version = "1.0.0"
+id = "artifacts/ukrainian-clicker"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19477
+
+[services.development]
+run = "pnpm --filter @workspace/ukrainian-clicker run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ukrainian-clicker", "run", "build" ]
+publicDir = "artifacts/ukrainian-clicker/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19477"
+BASE_PATH = "/"

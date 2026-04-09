@@ -1,0 +1,370 @@
+Build a complete mobile-first clicker game called "Українець: Шлях До Успіху" 
+(Ukrainian: Path to Success) as a React + TypeScript + Vite + Tailwind CSS web app. 
+The game should run fully in-browser with no backend.
+
+---
+
+## TECH STACK
+- React 18 + TypeScript
+- Vite
+- Tailwind CSS
+- Framer Motion (motion/react) for animations
+- shadcn/ui components
+- localStorage for save/load game state
+
+---
+
+## VISUAL STYLE
+Ukrainian village aesthetic — earthy, bold, slightly satirical.
+
+Color palette (use these exact CSS variables):
+  --background: #e8dcc4
+  --primary: #8b4513 (dark brown)
+  --card: #f5ede0
+  --accent: #ffd700 (gold)
+  --foreground: #2a1f0f
+  --game-corruption: #4a0e0e (dark red)
+  --game-health: #ff4444
+  --game-reputation: #ffaa00
+
+Fonts: "Russo One" (headers, buttons — bold uppercase) + "Rubik" (body text), 
+both from Google Fonts.
+
+UI style: thick dark borders (#2a1f0f), slightly rotated banner headings, 
+rough/earthy textures via CSS gradients, no rounded corners (use sharp border-radius: 2px).
+
+---
+
+## GAME ARCHITECTURE
+
+### State (all in React useState + useEffect for localStorage autosave):
+```ts
+{
+  // Core resources
+  money: number,         // starts at 150 ₴
+  health: number,        // 0–100, starts at 75
+  reputation: number,    // 0–100, starts at 50
+  corruption: number,    // 0–100, starts at 30
+  experience: number,    // 0–∞
+  level: number,         // 1–100
+  
+  // Progress
+  stage: 1 | 2 | 3 | 4 | 5,  // 1=Village, 2=Town, 3=City, 4=Oblast, 5=Elite
+  workClicks: number,
+  totalEarned: number,
+  
+  // Skills (each 0–5 levels)
+  skills: {
+    farming: number,
+    oratory: number,
+    bribery: number,
+    haggling: number,
+    networking: number,
+    driving: number,
+    accounting: number,
+    marketing: number
+  },
+  
+  // Businesses owned
+  businesses: string[],   // e.g. ["cafe", "logistics"]
+  
+  // Passive income per second
+  passiveIncome: number,
+  
+  // Currency unlocks
+  unlockedCurrencies: ("uah" | "usd" | "eur" | "crypto")[],
+  
+  // Inventory
+  inventory: { name: string; quantity: number }[],
+  
+  // Day counter
+  day: number,
+  
+  // Last save timestamp
+  lastSaved: number
+}
+```
+
+---
+
+## SCREENS / TABS (Bottom Navigation with 5 tabs)
+
+### 1. 🏠 LIFE tab (main clicker screen)
+- Full-width background image of a Ukrainian village (use Unsplash: 
+  https://images.unsplash.com/photo-1653775174351-ec93b874097d)
+- Animated character emoji in center (🧑‍🌾 → 👨‍💼 → 🤵 based on stage)
+- Big "💪 РАБОТАТИ" (WORK) button — clicking earns money, costs health:
+  - Earn: 20₴ + (farming_skill × 5) base, modified by equipped job
+  - Cost: -3 health per click
+  - 25% chance to trigger a random event after click
+- "Work counter" badge (shifts completed today)
+- Stage progress bar showing distance to next stage
+- Current location label (Village/Town/City/etc.)
+
+### 2. 💼 WORK tab
+Jobs list (unlock based on level/stage):
+| Job | Level req | Earn/shift | Health cost |
+|---|---|---|---|
+| Farm Labor | 1 | ₴20 | -5 |
+| Construction | 3 | ₴35 | -8 |
+| Market Vendor | 5 | ₴45 | -3 |
+| Delivery Driver (needs driving skill) | 8 | ₴60 | -4 |
+| Office Worker | 12 | ₴90 | -2 |
+| Accountant (needs accounting skill) | 20 | ₴150 | -1 |
+
+Each job card shows: name, icon, pay per shift, requirements, a "Work Shift" button.
+Active job persists until changed.
+
+### 3. 🏢 BUSINESS tab
+Unlocks at ₴500. Business cards:
+| Business | Cost | Passive ₴/sec | Level req |
+|---|---|---|---|
+| Street Food Stand | ₴500 | 0.5 | 5 |
+| Café (Кав'ярня) | ₴2000 | 2 | 10 |
+| Logistics Company | ₴8000 | 8 | 25 |
+| Construction Firm | ₴20000 | 20 | 40 |
+| Political Campaign | ₴50000 | 50 | 60 |
+| Oligarch Empire | ₴200000 | 200 | 80 |
+
+Show: business name, icon, cost, passive income rate, a "Invest" button (disabled if locked).
+Show current businesses with upgrade option (doubles passive income, costs 3× original price).
+Running total of passive ₴/sec displayed at top.
+
+### 4. 📚 SKILLS tab
+Skill tree with 8 skills, each 0–5 levels:
+- Each level costs: base_cost × (1.5 ^ current_level)
+- Show skill icon, name, current level (filled stars), description, upgrade button
+- Skills that affect gameplay:
+  - Farming +5₴/work click per level
+  - Oratory: unlocks better NPC event outcomes
+  - Bribery: enables corrupt choices in events
+  - Haggling: -10% market prices per level
+  - Networking: +5% reputation gain per level
+  - Driving: unlocks Delivery Driver job
+  - Accounting: unlocks Accountant job + Logistics business
+  - Marketing: +10% business passive income per level
+
+### 5. 🛒 MARKET tab
+Shop items:
+| Item | Price | Effect |
+|---|---|---|
+| Bread 🍞 | ₴10 | +10 health |
+| Borscht 🍲 | ₴25 | +25 health |
+| Medical Kit 💊 | ₴50 | +40 health |
+| Hospital Visit 🏥 | ₴200 | +100 health (full restore) |
+| Vodka 🍶 | ₴30 | +15 health, -5 rep |
+| Work Boots 🥾 | ₴80 | +10% work earnings (permanent) |
+| Business Suit 👔 | ₴500 | +15% reputation gain (permanent) |
+| Lawyer Retainer ⚖️ | ₴1000 | Protection from court events |
+
+---
+
+## TOP STATUS BAR (always visible)
+4 bars displayed at top of screen:
+1. 💰 Money — shows exact amount (₴ / $ / € based on stage)
+2. ❤️ Health — progress bar 0–100 (red)
+3. ⭐ Reputation — progress bar 0–100 (gold)
+4. ☠️ Corruption Scale — progress bar 0–100 (dark red), labeled "Рівень корупції"
+
+If health hits 0: show "GAME OVER — You collapsed from exhaustion" modal with restart.
+If reputation hits 0: show "GAME OVER — Everyone lost trust in you" modal with restart.
+
+---
+
+## RANDOM EVENTS SYSTEM
+Triggered randomly after work clicks (25% chance). Each event is a modal popup with:
+- Title, description text, Ukrainian village illustration emoji
+- 2 choices: "Honest Path 😇" and "Corrupt Deal 😈" (or contextual names)
+- Each choice affects: money, health, reputation, corruption differently
+
+Implement at least 12 events, including:
+
+1. **Neighbor Needs a Favor** — help get permit via bribe
+   - Honest: +rep +50, no money
+   - Corrupt: +₴200, +corruption +15, -rep -5
+
+2. **Tax Inspector Visits** — pay taxes or bribe
+   - Honest: -₴100, +rep +10
+   - Corrupt: -₴50 bribe, +corruption +20, risk of -₴500 fine (20% chance)
+
+3. **Found Money on Street** — keep or report
+   - Honest: +rep +15, +₴50 (reward)
+   - Corrupt: +₴200, +corruption +5
+
+4. **Sick Coworker** — cover their shift or report them
+   - Help: -time (skip passive income for 10s), +rep +20
+   - Report: +₴100 bonus, -rep -10
+
+5. **Business Partner Proposes Shady Deal**
+   - Refuse: +rep +10, miss profit
+   - Accept: +₴500, +corruption +25, -rep -15
+
+6. **Local Gang Demands Protection Money**
+   - Pay: -₴150, -rep -5
+   - Resist: -health -20, +rep +15
+
+7. **Inflation Crisis — prices up 30%** (forced event, no choice, market prices increase temporarily)
+
+8. **Judge Offers to Dismiss Case** (stage 3+)
+   - Pay bribe: -₴1000, +corruption +30, case dismissed
+   - Fight honestly: +rep +20, 50/50 outcome
+
+9. **Politician Offers Campaign Support** (stage 4+)
+   - Support: +₴2000, unlock political career path
+   - Refuse: +rep +5
+
+10. **Viral Social Media Post about you**
+    - Positive story: +rep +25
+    - Negative leak: -rep -20, +₴300 (tabloid paid you)
+
+11. **Bolt Food Delivery Opportunity** — work extra shift
+    - Accept: +₴300, -health -15
+    - Decline: rest, +health +10
+
+12. **Army Mobilization Notice** (stage 1-2 only, for humor)
+    - "Відкосити" (dodge): +corruption +10, keep playing
+    - "Служити" (serve): game pauses for "1 year" (skip 365 days, gain +50 rep, +30 exp)
+
+---
+
+## STAGE PROGRESSION
+5 stages unlocked by total money earned (cumulative):
+1. 🌾 Village (Selo) — start, ₴0+
+2. 🏘️ Raion Town — ₴1,000 earned total
+3. 🏙️ Oblast City — ₴10,000 earned total  
+4. 🌆 Kyiv — ₴100,000 earned total
+5. 👑 Elite / Oligarch — ₴1,000,000 earned total
+
+On stage up: show animated congratulations modal, unlock new jobs/businesses/events.
+Change background image and character emoji to match stage.
+
+---
+
+## PASSIVE INCOME SYSTEM
+- Every second, add (passiveIncome × multipliers) to money
+- Marketing skill: each level adds +10% to all business income
+- Use setInterval in a useEffect
+- Show "+₴X/sec" indicator near money bar when > 0
+
+---
+
+## LEVEL / XP SYSTEM
+- Gain XP from: work clicks (+5), events (+10–30), business unlocks (+50), skill upgrades (+20)
+- Level up formula: XP needed = 100 × level^1.5
+- Max level: 100
+- Each level up: small celebration animation, possible unlock announcement
+
+---
+
+## SAVE / LOAD SYSTEM
+- Auto-save to localStorage every 30 seconds and on every tab change
+- On app load: check localStorage for saved game, if found show "Resume Game" modal
+- "New Game" button clears save
+- Show "Last saved: X minutes ago" in settings
+
+---
+
+## ADDITIONAL UI COMPONENTS TO BUILD
+
+### ResourceBar component
+Props: icon, value, maxValue, color, label
+Renders: emoji icon + label + filled progress bar with numeric value
+
+### CorruptionScale component  
+Props: value (0–100)
+Renders: horizontal gradient bar from green→yellow→red, labeled "Рівень Корупції", 
+with skull icon that grows as corruption increases
+
+### EventPopup component
+Props: isOpen, event {title, description, choices}, onChoice, onClose
+Renders: full-screen semi-transparent overlay + centered card with:
+- Large emoji illustration
+- Title (Russo One font, uppercase)
+- Description text
+- Two buttons side-by-side (green honest / red corrupt)
+- Animation: slide up from bottom
+
+### SkillsTree component
+Grid of skill cards, each showing:
+- Skill icon (large emoji)
+- Skill name + description
+- Level display: filled/empty stars (★★★☆☆)
+- "Upgrade ₴X" button (disabled if can't afford or max level)
+- Glow effect on affordable upgrades
+
+### StageProgress component
+Horizontal progress bar showing % to next stage with milestone labels
+
+### PassiveIncomeTicket component
+Floating "+₴X" animations that pop up from the money bar whenever passive income ticks
+
+---
+
+## GAME OVER & WIN CONDITIONS
+- Game Over: health = 0 OR reputation = 0 → modal with stats summary + restart
+- "Soft win": reach Stage 5 → congratulations, game continues in endless mode
+- Endless mode: new meta-goals unlock (e.g., "Become President", "Buy Football Club")
+
+---
+
+## MONETIZATION STUBS (UI only, no real ads)
+- After every 10 events, show a "Watch Ad for ₴500 bonus" button (just a placeholder)
+- Premium skin selector in settings (locked, greyed out): "Бізнесмен", "Депутат", "Олігарх"
+
+---
+
+## FILE STRUCTURE
+src/
+  app/
+    App.tsx              — main game shell, state management
+    components/
+      ResourceBar.tsx
+      CorruptionScale.tsx
+      EventPopup.tsx
+      SkillsTree.tsx
+      BottomNav.tsx
+      StageProgress.tsx
+      PassiveIncomeTicket.tsx
+      GameOverModal.tsx
+      SaveLoadModal.tsx
+    data/
+      events.ts          — all 12+ event definitions
+      jobs.ts            — all job definitions  
+      businesses.ts      — all business definitions
+      skills.ts          — all skill definitions
+      market.ts          — all shop items
+    hooks/
+      useGameState.ts    — all state + localStorage logic
+      usePassiveIncome.ts — passive income ticker
+  styles/
+    theme.css            — CSS variables (as defined above)
+    tailwind.css
+index.html
+package.json             — deps: react, typescript, vite, tailwind, framer-motion, shadcn/ui
+
+---
+
+## PACKAGE.JSON dependencies
+{
+  "dependencies": {
+    "react": "^18",
+    "react-dom": "^18",
+    "motion": "^11",
+    "lucide-react": "latest"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vite": "^5",
+    "tailwindcss": "^4",
+    "@vitejs/plugin-react": "latest"
+  }
+}
+
+---
+
+Build the complete, fully functional game. All tabs must work. 
+The clicker must earn money. Events must fire randomly. 
+Skills must actually affect gameplay math. 
+Passive income must tick in real time. 
+Save/load must work via localStorage.
+The app must be mobile-first (max-width: 430px, centered on desktop).
