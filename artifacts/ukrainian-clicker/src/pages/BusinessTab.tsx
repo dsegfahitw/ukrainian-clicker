@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
 import { businesses } from "@/data/businesses";
-import { getBusinessUpgradeCost, calculatePassiveIncome } from "@/hooks/useGameState";
+import { getBusinessUpgradeCost } from "@/hooks/useGameState";
 import type { GameState } from "@/hooks/useGameState";
 
 interface BusinessTabProps {

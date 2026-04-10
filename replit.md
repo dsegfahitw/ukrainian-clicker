@@ -1,55 +1,89 @@
-# Workspace
+# Українець: Шлях До Успіху
 
-## Overview
+A mobile-first Ukrainian idle clicker game built with React + Vite + TypeScript. The player progresses from a village farmer to an oligarch through work, businesses, skills, and moral choices.
 
-pnpm workspace monorepo using TypeScript. Contains a Ukrainian clicker game "Українець: Шлях До Успіху".
+## Architecture
 
-## Stack
-
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
-
-## Main App: Українець: Шлях До Успіху
-
-A mobile-first clicker game built with React + TypeScript + Vite + Tailwind CSS + Framer Motion.
-
-### Game Features
-- **5 Tabs**: Life (main clicker), Work (jobs), Business (passive income), Skills (upgrades), Market (shop)
-- **Resources**: Money, Health, Reputation, Corruption
-- **Stage Progression**: Village → Town → City → Kyiv → Elite (based on total earnings)
-- **Random Events**: 12+ events with moral choices (honest vs corrupt paths)
-- **Skills**: 8 skills (Farming, Oratory, Bribery, Haggling, Networking, Driving, Accounting, Marketing)
-- **Businesses**: 6 businesses with passive income and upgrade system
-- **Market**: 8 items including consumables and permanent bonuses
-- **Save/Load**: Auto-save to localStorage every 30 seconds
+**Monorepo** using `pnpm` workspaces. Game lives at `artifacts/ukrainian-clicker`.
 
 ### Key Files
-- `artifacts/ukrainian-clicker/src/App.tsx` — Main game shell
-- `artifacts/ukrainian-clicker/src/hooks/useGameState.ts` — All state management + localStorage
-- `artifacts/ukrainian-clicker/src/hooks/usePassiveIncome.ts` — Passive income ticker
-- `artifacts/ukrainian-clicker/src/data/` — Game data (events, jobs, businesses, skills, market)
-- `artifacts/ukrainian-clicker/src/components/` — UI components
-- `artifacts/ukrainian-clicker/src/pages/` — Tab pages
 
-### Visual Style
-- Ukrainian village aesthetic with earthy tones
-- Colors: Background #e8dcc4, Primary #8b4513, Accent #ffd700
-- Fonts: Russo One (headings), Rubik (body) from Google Fonts
-- Sharp borders (2px radius), thick dark borders (#2a1f0f)
+- `src/hooks/useGameState.ts` — entire game state, all actions, save/load, achievements, events
+- `src/hooks/usePassiveIncome.ts` — 1-second passive income tick
+- `src/hooks/useSound.ts` — Web Audio API synthesized sound effects
+- `src/App.tsx` — root component, wires all tabs and modals
+- `src/data/` — all static game data (events, jobs, businesses, skills, market, achievements, dailyTasks, dailyRewards)
+- `src/pages/` — 6 tabs: Life, Work, Business, Skills, Market, Settings
+- `src/components/` — shared UI components
 
-## Key Commands
+### Save System
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+- Key: `ukrainian_clicker_save_v3`
+- Auto-saves every 30 seconds via `setInterval` (uses a ref so it always saves latest state)
+- Also saves on tab switch and `beforeunload`
+- Schema versioning — incompatible old saves rejected gracefully
+- NaN sanitization on load
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+### Game Systems
+
+**Progression:** 5 stages (Village → Town → City → Kyiv → Elite) driven by `totalEarned` thresholds: ₴1k / ₴10k / ₴100k / ₴1M
+
+**Jobs:** 6 jobs from farm labor (₴20/click) to accountant (₴150/click), each requiring level + optional skill
+
+**Businesses:** 8 businesses with passive income per second. Upgrade cost formula: `bizCost × 1.8^currentLevel` — single source of truth in `getBusinessUpgradeCost()` exported from useGameState
+
+**Skills:** 8 skills (farming, oratory, bribery, haggling, networking, driving, accounting, marketing), each 5 levels, cost = `baseCost × 1.5^currentLevel`
+
+**Events:** 18 random events (25% chance per work click) with honest/corrupt choices affecting money/health/reputation/corruption/XP
+
+**Achievements:** 26 achievements with instant popup notifications and monetary/XP rewards
+
+**Daily Tasks:** 3 rotating tasks per day (seeded shuffle using mulberry32 PRNG), tracked per session metric
+
+**Daily Login Rewards:** 7-day streak system with escalating rewards. Day 7 = Golden Boots permanent bonus
+
+**Offline Progress:** Up to 8 hours of passive income calculated on return, displayed in modal
+
+### Economy Balance
+
+| Stage | When reached | Primary income |
+|-------|-------------|----------------|
+| 1 Village | Start | Work clicks (₴20-60/click) |
+| 2 Town | ₴1,000 earned | First business + work |
+| 3 City | ₴10,000 earned | Passive businesses |
+| 4 Kyiv | ₴100,000 earned | Upgraded businesses |
+| 5 Elite | ₴1,000,000 earned | All systems active |
+
+First business (Street Food ₴500) reachable in ~5-10 minutes of play.
+
+### Key formulas
+
+```ts
+// XP to level up
+getLevelXpNeeded(level) = Math.floor(100 × level^1.5)
+
+// Business upgrade cost (single source of truth)
+getBusinessUpgradeCost(cost, level) = Math.floor(cost × 1.8^level)
+
+// Business passive income with marketing bonus
+income = biz.passiveIncome × 2^(ownedLevel-1) × (1 + marketing × 0.1)
+
+// Work earnings with all bonuses
+earn = Math.floor((job.earnPerShift + farming×5) × (1 + workBootsBonus))
+```
+
+### Critical Bug Fixes Applied
+
+1. BusinessTab upgrade cost was wrong (`cost × 3 × level`) — fixed to use shared `getBusinessUpgradeCost()`
+2. Autosave interval was re-created on every state change (never fired) — fixed with `stateRef`
+3. Daily reward double-triggered after offline earnings collection — fixed with `dailyLoginChecked` ref
+4. `getDailyTasksForDate` shuffle was broken (same comparator value) — fixed with mulberry32 seeded PRNG
+5. AdModal typed as `string | null` instead of union — fixed to `AdModalType`
+
+## Development
+
+```bash
+pnpm --filter @workspace/ukrainian-clicker run dev
+```
+
+Server runs on `PORT` env var (default 19477 in dev).

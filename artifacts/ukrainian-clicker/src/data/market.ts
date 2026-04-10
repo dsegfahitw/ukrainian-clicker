@@ -68,6 +68,15 @@ export const marketItems: MarketItem[] = [
     consumable: false,
   },
   {
+    id: "premium_boots",
+    name: "Преміум черевики",
+    emoji: "👟",
+    basePrice: 500,
+    effect: { permanent: "work_earnings_20" },
+    description: "+20% заробітку (назавжди)",
+    consumable: false,
+  },
+  {
     id: "business_suit",
     name: "Діловий костюм",
     emoji: "👔",
@@ -75,6 +84,15 @@ export const marketItems: MarketItem[] = [
     effect: { permanent: "reputation_gain_15" },
     description: "+15% приросту репутації (назавжди)",
     consumable: false,
+  },
+  {
+    id: "energy_drink",
+    name: "Енергетик",
+    emoji: "⚡",
+    basePrice: 40,
+    effect: { health: 20, reputation: -2 },
+    description: "+20 здоров'я, -2 репутація",
+    consumable: true,
   },
   {
     id: "lawyer",

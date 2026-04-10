@@ -14,6 +14,8 @@ import { OfflineModal } from "@/components/OfflineModal";
 import { DailyRewardModal } from "@/components/DailyRewardModal";
 import { AchievementPopup } from "@/components/AchievementPopup";
 import { AdModal } from "@/components/AdModal";
+import { LevelUpFlash } from "@/components/LevelUpFlash";
+import { HealthWarning } from "@/components/HealthWarning";
 import { LifeTab } from "@/pages/LifeTab";
 import { WorkTab } from "@/pages/WorkTab";
 import { BusinessTab } from "@/pages/BusinessTab";
@@ -29,13 +31,10 @@ function App() {
 
   usePassiveIncome(game.state.passiveIncome, game.addPassiveIncome, game.state.gameOver);
 
-  const handleTabChange = useCallback(
-    (tab: string) => {
-      game.saveNow();
-      setActiveTab(tab);
-    },
-    [game.saveNow]
-  );
+  const handleTabChange = useCallback((tab: string) => {
+    game.saveNow();
+    setActiveTab(tab);
+  }, [game.saveNow]);
 
   const handleWork = useCallback(() => {
     game.doWork((sound) => play(sound));
@@ -78,6 +77,9 @@ function App() {
         <CorruptionScale value={game.state.corruption} />
       </div>
 
+      {/* Health warning banner */}
+      <HealthWarning health={game.state.health} />
+
       {/* Tab Content */}
       <div className="pb-16">
         {activeTab === "life" && <LifeTab state={game.state} onWork={handleWork} />}
@@ -99,8 +101,11 @@ function App() {
 
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} unclaimedTasks={unclaimedTasks} />
 
-      {/* Floating money animations */}
+      {/* Floating coin animations */}
       <PassiveIncomeTicket floats={game.moneyFloats} />
+
+      {/* Level up celebration */}
+      <LevelUpFlash level={game.state.level} />
 
       {/* Modals — ordered by priority */}
       <EventPopup isOpen={!!game.currentEvent} event={game.currentEvent} onChoice={game.handleEventChoice} />
