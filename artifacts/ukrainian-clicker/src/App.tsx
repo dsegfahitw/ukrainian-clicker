@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useGameState } from "@/hooks/useGameState";
 import { usePassiveIncome } from "@/hooks/usePassiveIncome";
 import { useSound } from "@/hooks/useSound";
@@ -16,13 +16,15 @@ import { AchievementPopup } from "@/components/AchievementPopup";
 import { AdModal } from "@/components/AdModal";
 import { LevelUpFlash } from "@/components/LevelUpFlash";
 import { HealthWarning } from "@/components/HealthWarning";
+import { NewDayBanner } from "@/components/NewDayBanner";
 import { LifeTab } from "@/pages/LifeTab";
 import { WorkTab } from "@/pages/WorkTab";
 import { BusinessTab } from "@/pages/BusinessTab";
 import { SkillsTab } from "@/pages/SkillsTab";
-import { MarketTab } from "@/pages/MarketTab";
+import { ShopTab } from "@/pages/ShopTab";
 import { SettingsTab } from "@/pages/SettingsTab";
 import { getDailyTasksForDate } from "@/data/dailyTasks";
+import { bosses } from "@/data/bosses";
 
 function App() {
   const [activeTab, setActiveTab] = useState("life");
@@ -56,6 +58,11 @@ function App() {
     game.buyMarketItem(itemId, price, effect, () => play("purchase"));
   }, [game.buyMarketItem, play]);
 
+  const handleBuySkin = useCallback((skinId: string, price: number) => {
+    game.buySkin(skinId, price);
+    play("purchase");
+  }, [game.buySkin, play]);
+
   const handleClaimTask = useCallback((taskId: string) => {
     const today = new Date().toISOString().split("T")[0];
     const tasks = getDailyTasksForDate(today);
@@ -66,6 +73,10 @@ function App() {
   const unclaimedTasks = game.state.dailyTaskProgress.filter(
     (p) => p.completed && !p.claimedReward
   ).length;
+
+  const bossesAvailable = useMemo(() => {
+    return bosses.filter((b) => !game.state.defeatedBosses.includes(b.id)).length;
+  }, [game.state.defeatedBosses]);
 
   return (
     <div className="min-h-screen bg-background max-w-[430px] mx-auto relative overflow-hidden">
@@ -82,11 +93,31 @@ function App() {
 
       {/* Tab Content */}
       <div className="pb-16">
-        {activeTab === "life" && <LifeTab state={game.state} onWork={handleWork} />}
-        {activeTab === "work" && <WorkTab state={game.state} onSelectJob={game.setActiveJob} />}
-        {activeTab === "business" && <BusinessTab state={game.state} onBuy={handleBuyBusiness} onUpgrade={handleUpgradeBusiness} />}
-        {activeTab === "skills" && <SkillsTab state={game.state} onUpgrade={handleUpgradeSkill} />}
-        {activeTab === "market" && <MarketTab state={game.state} onBuy={handleBuyMarketItem} />}
+        {activeTab === "life" && (
+          <LifeTab state={game.state} onWork={handleWork} />
+        )}
+        {activeTab === "work" && (
+          <WorkTab state={game.state} onSelectJob={game.setActiveJob} />
+        )}
+        {activeTab === "business" && (
+          <BusinessTab
+            state={game.state}
+            onBuy={handleBuyBusiness}
+            onUpgrade={handleUpgradeBusiness}
+            onChallengeBoss={game.challengeBoss}
+          />
+        )}
+        {activeTab === "skills" && (
+          <SkillsTab state={game.state} onUpgrade={handleUpgradeSkill} />
+        )}
+        {activeTab === "shop" && (
+          <ShopTab
+            state={game.state}
+            onBuyMarket={handleBuyMarketItem}
+            onBuySkin={handleBuySkin}
+            onSelectSkin={game.selectSkin}
+          />
+        )}
         {activeTab === "settings" && (
           <SettingsTab
             state={game.state}
@@ -99,13 +130,21 @@ function App() {
         )}
       </div>
 
-      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} unclaimedTasks={unclaimedTasks} />
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        unclaimedTasks={unclaimedTasks}
+        bossesAvailable={bossesAvailable}
+      />
 
       {/* Floating coin animations */}
       <PassiveIncomeTicket floats={game.moneyFloats} />
 
       {/* Level up celebration */}
       <LevelUpFlash level={game.state.level} />
+
+      {/* New day sunrise banner */}
+      <NewDayBanner show={game.showNewDay} day={game.state.day} />
 
       {/* Modals — ordered by priority */}
       <EventPopup isOpen={!!game.currentEvent} event={game.currentEvent} onChoice={game.handleEventChoice} />

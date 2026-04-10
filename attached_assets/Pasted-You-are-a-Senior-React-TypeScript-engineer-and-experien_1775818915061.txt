@@ -1,0 +1,283 @@
+You are a Senior React / TypeScript engineer and experienced mobile idle game developer.
+
+The project is a mobile-first clicker game called:
+
+"Українець: Шлях До Успіху"
+
+The game already exists but requires **bug fixes, feature expansion, UX improvements, and monetization systems**.
+
+Your task is to **audit, fix, redesign, expand gameplay systems, and fully test the game like a senior developer preparing it for release.**
+
+---
+
+# 1 — FIX BROKEN DAY SYSTEM
+
+The in-game day counter currently does not change.
+
+Implement a proper day progression system.
+
+Rules:
+
+One in-game day = 60 seconds of real time.
+
+Every day:
+
+* increment the day counter
+* trigger daily income calculations
+* reset daily tasks
+* potentially trigger special events
+
+Display the current day clearly in the top UI.
+
+Example:
+
+Day 1
+Day 2
+Day 3
+
+Add a small animated sunrise icon when a new day begins.
+
+---
+
+# 2 — ADD MORE AUTHENTIC UKRAINIAN FLAVOR
+
+Improve immersion and authenticity.
+
+Make the world feel like Ukrainian reality with humor and satire.
+
+Add:
+
+* authentic job names
+* Ukrainian slang
+* realistic events
+* cultural references
+
+Examples of new jobs:
+
+* Taxi Driver
+* Bolt Food Courier
+* Market Trader
+* Car Wash Worker
+* Security Guard
+* Small Shop Owner
+
+Add Ukrainian-style UI labels.
+
+Example buttons:
+
+"Працювати"
+"Відпочити"
+"Інвестувати"
+
+---
+
+# 3 — ADD BOSS SYSTEM (UKRAINIAN OLIGARCHS)
+
+Introduce a **Boss System**.
+
+Bosses represent powerful oligarchs or political figures.
+
+Player can challenge them once certain requirements are met.
+
+Boss battles are strategic events, not combat.
+
+They require combinations of:
+
+* reputation
+* corruption
+* money
+* skills
+
+Example bosses:
+
+Boss 1 — Local Business King
+Requirement: reputation 30
+Reward: unlock small business
+
+Boss 2 — City Oligarch
+Requirement: money ₴50,000
+Reward: passive income boost
+
+Boss 3 — Media Tycoon
+Requirement: marketing level 3
+Reward: reputation multiplier
+
+Boss 4 — Political Sponsor
+Requirement: corruption 50
+Reward: political influence skill
+
+Boss 5 — National Oligarch
+Requirement: stage 5
+Reward: massive passive income
+
+Boss encounters should appear as **special story events**.
+
+Include animations and unique UI cards.
+
+---
+
+# 4 — REDESIGN UI FOR USER FRIENDLINESS
+
+The UI must be improved for clarity and usability.
+
+Improve:
+
+* layout hierarchy
+* button readability
+* spacing
+* touch targets
+
+Rules:
+
+Minimum button height: 56px
+
+Improve:
+
+* tab navigation clarity
+* progress bars
+* event popups
+* upgrade buttons
+
+Add subtle UI improvements:
+
+* hover effects
+* click feedback
+* smoother transitions
+* better icons
+
+The game should feel like a polished mobile app.
+
+---
+
+# 5 — ADD MONETIZATION SYSTEM
+
+Add optional monetization systems similar to popular idle games.
+
+Add a new **Shop / Premium tab**.
+
+Include:
+
+Remove Ads — $2.99
+VIP Membership — $4.99
+
+VIP benefits:
+
+* +20% passive income
+* +20% work income
+* daily bonus ₴1000
+* exclusive gold UI theme
+
+Add **cosmetic skins** for the character.
+
+Examples:
+
+Businessman skin
+Politician skin
+Oligarch skin
+
+Skins should be purchasable or unlockable.
+
+All monetization systems should be implemented as **UI placeholders only** (no real payments yet).
+
+---
+
+# 6 — FULL GAME TESTING
+
+Perform a full gameplay test pass.
+
+Simulate long gameplay sessions.
+
+Test:
+
+* clicking system
+* skill upgrades
+* jobs
+* businesses
+* passive income
+* daily rewards
+* achievements
+* boss encounters
+* offline progress
+* save/load system
+* corruption mechanics
+* reputation mechanics
+
+Fix all broken interactions.
+
+Ensure:
+
+No NaN values
+No stuck progression
+No UI errors
+No crashes
+
+---
+
+# 7 — ECONOMY REBALANCE
+
+Re-evaluate the game economy.
+
+Ensure progression feels smooth.
+
+Targets:
+
+First business within 10 minutes.
+
+Stage 3 within 2–3 hours.
+
+Boss fights spaced naturally.
+
+Ensure players always feel meaningful progress.
+
+---
+
+# 8 — CODE QUALITY IMPROVEMENTS
+
+Refactor the project to production quality.
+
+Ensure:
+
+* modular components
+* reusable hooks
+* clean TypeScript typing
+* no duplicated code
+* consistent naming
+
+Use:
+
+React.memo
+useMemo
+useCallback
+
+when necessary.
+
+---
+
+# 9 — PERFORMANCE OPTIMIZATION
+
+Ensure the game runs smoothly.
+
+Optimize:
+
+* passive income timers
+* event triggers
+* rendering cycles
+
+Avoid unnecessary re-renders.
+
+---
+
+# 10 — FINAL POLISH
+
+After all fixes and improvements:
+
+Ensure the game:
+
+✔ feels responsive
+✔ is mobile-friendly
+✔ has no broken systems
+✔ runs smoothly
+✔ has engaging progression
+✔ has polished UI
+
+The final result should feel like a **complete indie idle game ready for release.**

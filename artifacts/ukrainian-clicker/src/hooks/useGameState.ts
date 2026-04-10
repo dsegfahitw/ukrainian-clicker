@@ -6,6 +6,7 @@ import { skills as skillDefs } from "@/data/skills";
 import { achievements, type AchievementCheckState } from "@/data/achievements";
 import { dailyRewards, type DailyReward } from "@/data/dailyRewards";
 import { getDailyTasksForDate, type DailyTask } from "@/data/dailyTasks";
+import { bosses } from "@/data/bosses";
 
 export type AdModalType = "interstitial" | "rewarded" | null;
 
@@ -55,6 +56,11 @@ export interface GameState {
   highestReputation: number;
   highestCorruption: number;
   saveVersion: number;
+  defeatedBosses: string[];
+  selectedSkin: string;
+  unlockedSkins: string[];
+  lastDayTickAt: number;
+  vipActive: boolean;
 }
 
 const SAVE_VERSION = 3;
@@ -103,6 +109,11 @@ const initialState: GameState = {
   highestReputation: 50,
   highestCorruption: 30,
   saveVersion: SAVE_VERSION,
+  defeatedBosses: [],
+  selectedSkin: "farmer",
+  unlockedSkins: ["farmer"],
+  lastDayTickAt: Date.now(),
+  vipActive: false,
 };
 
 export interface OfflineData {
@@ -275,6 +286,7 @@ export function useGameState() {
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [showAdModal, setShowAdModal] = useState<AdModalType>(null);
   const [lastInterstitialTime, setLastInterstitialTime] = useState(Date.now());
+  const [showNewDay, setShowNewDay] = useState(false);
   const floatIdRef = useRef(0);
   // Keep a ref to latest state for the autosave interval (avoids stale closure)
   const stateRef = useRef(state);
@@ -350,6 +362,36 @@ export function useGameState() {
     }, 15_000);
     return () => clearInterval(interval);
   }, [lastInterstitialTime]);
+
+  // Day progression: 60 real seconds = 1 in-game day
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setState((prev) => {
+        if (prev.gameOver) return prev;
+        const elapsed = Date.now() - prev.lastDayTickAt;
+        if (elapsed >= 60_000) {
+          const newDay = prev.day + 1;
+          setShowNewDay(true);
+          setTimeout(() => setShowNewDay(false), 3500);
+          // Small rest bonus each new day
+          const healthBonus = Math.min(5, 100 - prev.health);
+          return {
+            ...prev,
+            day: newDay,
+            lastDayTickAt: Date.now(),
+            health: prev.health + healthBonus,
+            // Reset daily session metrics so tasks can refresh naturally
+            sessionWorkClicks: 0,
+            sessionSkillUpgrades: 0,
+            sessionMarketPurchases: 0,
+            sessionMoneyEarned: 0,
+          };
+        }
+        return prev;
+      });
+    }, 5_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const addMoneyFloat = useCallback((amount: number) => {
     const id = floatIdRef.current++;
@@ -673,6 +715,56 @@ export function useGameState() {
 
   const processAchievements = useCallback((s: GameState) => checkNewAchievements(s), []);
 
+  const challengeBoss = useCallback((bossId: string) => {
+    const boss = bosses.find((b) => b.id === bossId);
+    if (!boss) return;
+    setState((prev) => {
+      if (prev.defeatedBosses.includes(bossId)) return prev;
+      const r = boss.requirements;
+      if (r.reputation !== undefined && prev.reputation < r.reputation) return prev;
+      if (r.corruption !== undefined && prev.corruption < r.corruption) return prev;
+      if (r.money !== undefined && prev.money < r.money) return prev;
+      if (r.stage !== undefined && prev.stage < r.stage) return prev;
+      if (r.level !== undefined && prev.level < r.level) return prev;
+      if (r.skill && (prev.skills[r.skill.id] || 0) < r.skill.level) return prev;
+
+      let s = { ...prev, defeatedBosses: [...prev.defeatedBosses, bossId] };
+      if (boss.reward.money) { s.money = s.money + boss.reward.money; s.totalEarned = s.totalEarned + boss.reward.money; }
+      if (boss.reward.experience) s.experience = s.experience + boss.reward.experience;
+      if (boss.reward.permanent && !s.permanentBonuses.includes(boss.reward.permanent)) {
+        s.permanentBonuses = [...s.permanentBonuses, boss.reward.permanent];
+      }
+      if (boss.reward.passiveBonus) {
+        s.passiveIncome = s.passiveIncome * (1 + boss.reward.passiveBonus);
+      }
+      s = checkLevelUp(s);
+      s = applyAchievements(s);
+      return s;
+    });
+  }, [checkLevelUp, applyAchievements]);
+
+  const buySkin = useCallback((skinId: string, price: number) => {
+    setState((prev) => {
+      if (prev.unlockedSkins.includes(skinId)) {
+        return { ...prev, selectedSkin: skinId };
+      }
+      if (price > 0 && prev.money < price) return prev;
+      return {
+        ...prev,
+        money: price > 0 ? prev.money - price : prev.money,
+        unlockedSkins: [...prev.unlockedSkins, skinId],
+        selectedSkin: skinId,
+      };
+    });
+  }, []);
+
+  const selectSkin = useCallback((skinId: string) => {
+    setState((prev) => {
+      if (!prev.unlockedSkins.includes(skinId)) return prev;
+      return { ...prev, selectedSkin: skinId };
+    });
+  }, []);
+
   return {
     state,
     currentEvent, setCurrentEvent,
@@ -684,6 +776,7 @@ export function useGameState() {
     showOfflineModal,
     showResumeModal,
     showAdModal,
+    showNewDay,
     doWork,
     handleEventChoice,
     setActiveJob,
@@ -707,5 +800,8 @@ export function useGameState() {
     showRewardedAd,
     getLevelXpNeeded,
     processAchievements,
+    challengeBoss,
+    buySkin,
+    selectSkin,
   };
 }
