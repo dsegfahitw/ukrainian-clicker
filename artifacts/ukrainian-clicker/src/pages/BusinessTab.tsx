@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { businesses } from "@/data/businesses";
 import { bosses } from "@/data/bosses";
@@ -19,13 +19,18 @@ function BusinessTabInner({ state, onBuy, onUpgrade, onChallengeBoss }: Business
   const [section, setSection] = useState<Section>("businesses");
   const undefeated = bosses.filter((b) => !state.defeatedBosses.includes(b.id)).length;
 
+  const orderedBusinesses = useMemo(() => {
+    const unlocked = businesses.filter((biz) => state.level >= biz.levelReq);
+    const locked = businesses.filter((biz) => state.level < biz.levelReq);
+    return [...unlocked, ...locked];
+  }, [state.level]);
+
   return (
     <div className="flex flex-col" style={{ minHeight: "calc(100vh - 120px)" }}>
-      {/* Section Tabs */}
       <div className="flex border-b-2 border-foreground bg-card sticky top-0 z-10">
         <button
           onClick={() => setSection("businesses")}
-          className={`flex-1 py-2.5 font-heading text-xs uppercase tracking-wider transition-colors ${
+          className={`tap-target flex-1 py-2.5 font-heading text-xs uppercase tracking-wider transition-colors ${
             section === "businesses" ? "bg-primary text-primary-foreground" : "text-foreground/50"
           }`}
         >
@@ -33,7 +38,7 @@ function BusinessTabInner({ state, onBuy, onUpgrade, onChallengeBoss }: Business
         </button>
         <button
           onClick={() => setSection("bosses")}
-          className={`flex-1 py-2.5 font-heading text-xs uppercase tracking-wider transition-colors relative ${
+          className={`tap-target flex-1 py-2.5 font-heading text-xs uppercase tracking-wider transition-colors relative ${
             section === "bosses" ? "bg-primary text-primary-foreground" : "text-foreground/50"
           }`}
         >
@@ -58,19 +63,22 @@ function BusinessTabInner({ state, onBuy, onUpgrade, onChallengeBoss }: Business
             )}
 
             <div className="space-y-3">
-              {businesses.map((biz) => {
+              {orderedBusinesses.map((biz) => {
                 const owned = state.ownedBusinesses.find((b) => b.id === biz.id);
-                const isLocked = state.level < biz.levelReq;
+                const levelGateBypassed = state.permanentBonuses.includes("unlock_small_business") && biz.id === "street_food";
+                const isLocked = !levelGateBypassed && state.level < biz.levelReq;
                 const missingSkill = biz.requiredSkill && (state.skills[biz.requiredSkill] || 0) < 1;
                 const canBuy = !isLocked && !missingSkill && !owned && state.money >= biz.cost;
                 const upgradeCost = owned ? getBusinessUpgradeCost(biz.cost, owned.level) : 0;
                 const canUpgrade = owned && state.money >= upgradeCost;
-                const currentIncome = owned
-                  ? biz.passiveIncome * Math.pow(2, owned.level - 1) * (1 + (state.skills.marketing || 0) * 0.1)
-                  : 0;
-                const nextIncome = owned
-                  ? biz.passiveIncome * Math.pow(2, owned.level) * (1 + (state.skills.marketing || 0) * 0.1)
-                  : 0;
+                const passiveMultiplier =
+                  1 +
+                  (state.skills.marketing || 0) * 0.1 +
+                  (state.permanentBonuses.includes("passive_boost_25") ? 0.25 : 0) +
+                  (state.permanentBonuses.includes("oligarch_network") ? 0.5 : 0) +
+                  (state.vipActive ? 0.2 : 0);
+                const currentIncome = owned ? biz.passiveIncome * Math.pow(2, owned.level - 1) * passiveMultiplier : 0;
+                const nextIncome = owned ? biz.passiveIncome * Math.pow(2, owned.level) * passiveMultiplier : 0;
 
                 return (
                   <motion.div
@@ -115,8 +123,8 @@ function BusinessTabInner({ state, onBuy, onUpgrade, onChallengeBoss }: Business
                     {!owned && canBuy && (
                       <button
                         onClick={() => onBuy(biz.id)}
-                        className="w-full mt-3 py-3 bg-green-700 hover:bg-green-600 text-white font-heading text-xs uppercase tracking-wider border-2 border-green-900 active:scale-95 transition-all"
-                        style={{ borderRadius: "2px", minHeight: "48px" }}
+                        className="tap-target w-full mt-3 py-3 bg-green-700 hover:bg-green-600 text-white font-heading text-xs uppercase tracking-wider border-2 border-green-900 active:scale-95 transition-all"
+                        style={{ borderRadius: "2px" }}
                       >
                         💰 Інвестувати ₴{biz.cost.toLocaleString()}
                       </button>
@@ -132,12 +140,10 @@ function BusinessTabInner({ state, onBuy, onUpgrade, onChallengeBoss }: Business
                       <button
                         onClick={() => onUpgrade(biz.id)}
                         disabled={!canUpgrade}
-                        className={`w-full mt-3 py-3 font-heading text-xs uppercase tracking-wider border-2 active:scale-95 transition-all ${
-                          canUpgrade
-                            ? "bg-accent text-foreground border-foreground hover:bg-accent/80"
-                            : "bg-foreground/10 text-foreground/30 border-foreground/20"
+                        className={`tap-target w-full mt-3 py-3 font-heading text-xs uppercase tracking-wider border-2 active:scale-95 transition-all ${
+                          canUpgrade ? "bg-accent text-foreground border-foreground hover:bg-accent/80" : "bg-foreground/10 text-foreground/30 border-foreground/20"
                         }`}
-                        style={{ borderRadius: "2px", minHeight: "48px" }}
+                        style={{ borderRadius: "2px" }}
                       >
                         ⬆ Покращити ₴{upgradeCost.toLocaleString()}
                         {canUpgrade && (

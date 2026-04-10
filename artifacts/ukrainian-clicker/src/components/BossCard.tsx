@@ -19,7 +19,8 @@ function checkReqs(boss: Boss, state: GameState): { met: boolean; missing: strin
   if (r.level !== undefined && state.level < r.level) missing.push(`Рівень ${r.level}`);
   if (r.skill) {
     const current = state.skills[r.skill.id] || 0;
-    if (current < r.skill.level) missing.push(`${r.skill.id} рівень ${r.skill.level}`);
+    const skillLabel = r.skill.id === "marketing" ? "Маркетинг" : r.skill.id;
+    if (current < r.skill.level) missing.push(`${skillLabel}: ${current}/${r.skill.level}`);
   }
   return { met: missing.length === 0, missing };
 }
@@ -105,13 +106,12 @@ export function BossCard({ boss, state, onChallenge, defeated }: BossCardProps) 
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => onChallenge(boss.id)}
-          className="w-full py-3 font-heading text-sm uppercase tracking-wider border-2 transition-all active:brightness-90"
+          className="tap-target w-full py-3 font-heading text-sm uppercase tracking-wider border-2 transition-all active:brightness-90"
           style={{
             borderRadius: "2px",
             borderColor: boss.color,
             color: boss.color,
             background: `${boss.color}22`,
-            minHeight: "52px",
           }}
         >
           ⚔️ Кинути виклик

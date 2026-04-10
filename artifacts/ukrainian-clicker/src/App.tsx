@@ -1,6 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
 import { useGameState } from "@/hooks/useGameState";
-import { usePassiveIncome } from "@/hooks/usePassiveIncome";
 import { useSound } from "@/hooks/useSound";
 import { ResourceBar } from "@/components/ResourceBar";
 import { CorruptionScale } from "@/components/CorruptionScale";
@@ -17,11 +16,13 @@ import { AdModal } from "@/components/AdModal";
 import { LevelUpFlash } from "@/components/LevelUpFlash";
 import { HealthWarning } from "@/components/HealthWarning";
 import { NewDayBanner } from "@/components/NewDayBanner";
+import { BossEncounterModal } from "@/components/BossEncounterModal";
 import { LifeTab } from "@/pages/LifeTab";
 import { WorkTab } from "@/pages/WorkTab";
 import { BusinessTab } from "@/pages/BusinessTab";
 import { SkillsTab } from "@/pages/SkillsTab";
 import { ShopTab } from "@/pages/ShopTab";
+import { PremiumTab } from "@/pages/PremiumTab";
 import { SettingsTab } from "@/pages/SettingsTab";
 import { getDailyTasksForDate } from "@/data/dailyTasks";
 import { bosses } from "@/data/bosses";
@@ -30,8 +31,6 @@ function App() {
   const [activeTab, setActiveTab] = useState("life");
   const game = useGameState();
   const { play } = useSound(game.state.soundEnabled);
-
-  usePassiveIncome(game.state.passiveIncome, game.addPassiveIncome, game.state.gameOver);
 
   const handleTabChange = useCallback((tab: string) => {
     game.saveNow();
@@ -53,6 +52,9 @@ function App() {
   const handleUpgradeSkill = useCallback((skillId: string) => {
     game.upgradeSkill(skillId, () => play("purchase"));
   }, [game.upgradeSkill, play]);
+  const handleChoice = useCallback((choiceIndex: number) => {
+    game.handleEventChoice(choiceIndex);
+  }, [game.handleEventChoice]);
 
   const handleBuyMarketItem = useCallback((itemId: string, price: number, effect: { health?: number; reputation?: number; permanent?: string }) => {
     game.buyMarketItem(itemId, price, effect, () => play("purchase"));
@@ -64,11 +66,10 @@ function App() {
   }, [game.buySkin, play]);
 
   const handleClaimTask = useCallback((taskId: string) => {
-    const today = new Date().toISOString().split("T")[0];
-    const tasks = getDailyTasksForDate(today);
+    const tasks = getDailyTasksForDate(game.state.dailyTasksDate || `day-${game.state.day}`);
     const task = tasks.find((t) => t.id === taskId);
     if (task) game.claimDailyTask(taskId, task);
-  }, [game.claimDailyTask]);
+  }, [game.claimDailyTask, game.state.dailyTasksDate, game.state.day]);
 
   const unclaimedTasks = game.state.dailyTaskProgress.filter(
     (p) => p.completed && !p.claimedReward
@@ -78,14 +79,24 @@ function App() {
     return bosses.filter((b) => !game.state.defeatedBosses.includes(b.id)).length;
   }, [game.state.defeatedBosses]);
 
+  const headerClass = game.state.vipActive
+    ? "bg-gradient-to-r from-amber-100 to-yellow-50 border-amber-700"
+    : "bg-card border-foreground";
+
   return (
-    <div className="min-h-screen bg-background max-w-[430px] mx-auto relative overflow-hidden">
+    <div className={`min-h-screen bg-background max-w-[430px] mx-auto relative overflow-hidden ${game.state.vipActive ? "vip-theme" : ""}`}>
       {/* Sticky Resource Header */}
-      <div className="bg-card border-b-2 border-foreground p-2 grid grid-cols-2 gap-x-3 gap-y-1 sticky top-0 z-30">
+      <div className={`${headerClass} border-b-2 p-2 grid grid-cols-2 gap-x-3 gap-y-1 sticky top-0 z-30`}>
         <ResourceBar icon="💰" value={game.state.money} maxValue={1_000_000} color="#ffd700" label="Гроші" showExact />
         <ResourceBar icon="❤️" value={game.state.health} maxValue={100} color="#ff4444" label="Здоров'я" />
         <ResourceBar icon="⭐" value={game.state.reputation} maxValue={100} color="#ffaa00" label="Репутація" />
         <CorruptionScale value={game.state.corruption} />
+        <div className="col-span-2 flex items-center justify-center gap-2 text-xs font-heading uppercase tracking-widest pt-1">
+          <span className={game.showNewDay ? "animate-float" : ""}>🌅</span>
+          День {game.state.day}
+          <span className="text-foreground/60">•</span>
+          <span>{game.state.vipActive ? "VIP" : "Standard"}</span>
+        </div>
       </div>
 
       {/* Health warning banner */}
@@ -94,7 +105,7 @@ function App() {
       {/* Tab Content */}
       <div className="pb-16">
         {activeTab === "life" && (
-          <LifeTab state={game.state} onWork={handleWork} />
+          <LifeTab state={game.state} onWork={handleWork} onRest={game.takeRest} onInvest={() => handleTabChange("business")} />
         )}
         {activeTab === "work" && (
           <WorkTab state={game.state} onSelectJob={game.setActiveJob} />
@@ -117,6 +128,9 @@ function App() {
             onBuySkin={handleBuySkin}
             onSelectSkin={game.selectSkin}
           />
+        )}
+        {activeTab === "premium" && (
+          <PremiumTab state={game.state} onActivateVip={game.activateVipMembership} onRemoveAds={game.purchaseRemoveAds} />
         )}
         {activeTab === "settings" && (
           <SettingsTab
@@ -147,7 +161,7 @@ function App() {
       <NewDayBanner show={game.showNewDay} day={game.state.day} />
 
       {/* Modals — ordered by priority */}
-      <EventPopup isOpen={!!game.currentEvent} event={game.currentEvent} onChoice={game.handleEventChoice} />
+      <EventPopup isOpen={!!game.currentEvent} event={game.currentEvent} onChoice={handleChoice} />
 
       <AchievementPopup achievement={game.achievementQueue[0] ?? null} onDismiss={game.dismissAchievement} />
 
@@ -166,6 +180,7 @@ function App() {
       />
 
       <AdModal type={game.showAdModal} onWatchAd={game.watchAdForBonus} onDismiss={game.dismissAd} />
+      <BossEncounterModal encounter={game.activeBossEncounter} onResolve={game.resolveBossEncounter} />
 
       <GameOverModal
         isOpen={game.state.gameOver}

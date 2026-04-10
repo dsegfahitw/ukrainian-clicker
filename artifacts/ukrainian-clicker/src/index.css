@@ -64,10 +64,12 @@
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
     font-family: 'Rubik', sans-serif;
+    overscroll-behavior: none;
   }
 }
 
@@ -112,6 +114,27 @@
 
 .animate-money-float {
   animation: money-float 1.2s ease-out forwards;
+}
+
+.tap-target {
+  min-height: 56px;
+  transition: transform 0.16s ease, filter 0.2s ease, background-color 0.2s ease;
+}
+
+.tap-target:active {
+  transform: scale(0.97);
+}
+
+.vip-theme {
+  background: radial-gradient(circle at top, #fff1b8 0%, #f4e9cc 25%, #e5d4ad 100%);
+}
+
+button:hover {
+  filter: brightness(1.04);
+}
+
+.border-game {
+  box-shadow: 0 2px 0 rgba(42, 31, 15, 0.15);
 }
 
 .scrollbar-hide::-webkit-scrollbar {

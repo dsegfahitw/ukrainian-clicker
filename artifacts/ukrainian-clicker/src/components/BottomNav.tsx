@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 interface BottomNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -11,10 +13,11 @@ const tabs = [
   { id: "business", label: "Бізнес", emoji: "🏢" },
   { id: "skills", label: "Навички", emoji: "📚" },
   { id: "shop", label: "Магазин", emoji: "🛒" },
+  { id: "premium", label: "Premium", emoji: "⭐" },
   { id: "settings", label: "Меню", emoji: "⚙️" },
 ];
 
-export function BottomNav({ activeTab, onTabChange, unclaimedTasks = 0, bossesAvailable = 0 }: BottomNavProps) {
+function BottomNavInner({ activeTab, onTabChange, unclaimedTasks = 0, bossesAvailable = 0 }: BottomNavProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card border-t-2 border-foreground">
       <div className="max-w-[430px] mx-auto flex">
@@ -22,7 +25,7 @@ export function BottomNav({ activeTab, onTabChange, unclaimedTasks = 0, bossesAv
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`flex-1 flex flex-col items-center py-2 relative transition-colors ${
+            className={`tap-target flex-1 flex flex-col items-center py-2 relative transition-colors ${
               activeTab === tab.id
                 ? "bg-primary text-primary-foreground"
                 : "text-foreground/60 hover:bg-foreground/5"
@@ -48,3 +51,5 @@ export function BottomNav({ activeTab, onTabChange, unclaimedTasks = 0, bossesAv
     </nav>
   );
 }
+
+export const BottomNav = memo(BottomNavInner);

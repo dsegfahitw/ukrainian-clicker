@@ -3,13 +3,13 @@ import { getDailyTasksForDate } from "@/data/dailyTasks";
 import type { DailyTaskProgress } from "@/hooks/useGameState";
 
 interface DailyTasksProps {
+  taskCycleKey: string;
   taskProgress: DailyTaskProgress[];
   onClaim: (taskId: string) => void;
 }
 
-export function DailyTasks({ taskProgress, onClaim }: DailyTasksProps) {
-  const today = new Date().toISOString().split("T")[0];
-  const tasks = getDailyTasksForDate(today);
+export function DailyTasks({ taskCycleKey, taskProgress, onClaim }: DailyTasksProps) {
+  const tasks = getDailyTasksForDate(taskCycleKey);
 
   return (
     <div className="p-4">
@@ -47,7 +47,7 @@ export function DailyTasks({ taskProgress, onClaim }: DailyTasksProps) {
                 {progress.completed && !progress.claimedReward && (
                   <button
                     onClick={() => onClaim(task.id)}
-                    className="bg-accent text-foreground font-heading text-[10px] uppercase px-2 py-1 border border-foreground active:scale-95"
+                    className="tap-target bg-accent text-foreground font-heading text-[10px] uppercase px-2 py-1 border border-foreground active:scale-95"
                     style={{ borderRadius: "2px" }}
                   >
                     Забрати

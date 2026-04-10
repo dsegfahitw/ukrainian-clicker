@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import { jobs } from "@/data/jobs";
 import { computeWorkEarnings } from "@/hooks/useGameState";
@@ -15,6 +15,12 @@ const skillLabels: Record<string, string> = {
 };
 
 function WorkTabInner({ state, onSelectJob }: WorkTabProps) {
+  const orderedJobs = useMemo(() => {
+    const unlocked = jobs.filter((job) => state.level >= job.levelReq);
+    const locked = jobs.filter((job) => state.level < job.levelReq);
+    return [...unlocked, ...locked];
+  }, [state.level]);
+
   return (
     <div className="p-4 pb-24 scrollbar-hide overflow-y-auto max-h-[calc(100vh-120px)]">
       <h2 className="font-heading text-lg uppercase tracking-wider text-foreground mb-4 text-center" style={{ transform: "rotate(-1deg)" }}>
@@ -22,12 +28,11 @@ function WorkTabInner({ state, onSelectJob }: WorkTabProps) {
       </h2>
 
       <div className="space-y-3">
-        {jobs.map((job) => {
+        {orderedJobs.map((job) => {
           const isActive = state.activeJobId === job.id;
           const isLocked = state.level < job.levelReq;
           const missingSkill = job.requiredSkill && (state.skills[job.requiredSkill] || 0) < 1;
           const canSelect = !isLocked && !missingSkill;
-          // Show earnings with all bonuses applied for the active or preview job
           const previewState = { ...state, activeJobId: job.id };
           const totalEarn = computeWorkEarnings(previewState);
 
@@ -68,8 +73,8 @@ function WorkTabInner({ state, onSelectJob }: WorkTabProps) {
               {canSelect && !isActive && (
                 <button
                   onClick={() => onSelectJob(job.id)}
-                  className="w-full mt-3 py-2.5 bg-primary text-primary-foreground font-heading text-xs uppercase tracking-wider border-2 border-foreground active:scale-95 transition-transform"
-                  style={{ borderRadius: "2px", minHeight: "44px" }}
+                  className="tap-target w-full mt-3 py-2.5 bg-primary text-primary-foreground font-heading text-xs uppercase tracking-wider border-2 border-foreground active:scale-95 transition-transform"
+                  style={{ borderRadius: "2px" }}
                 >
                   Обрати роботу
                 </button>

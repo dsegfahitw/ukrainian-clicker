@@ -1,8 +1,5 @@
 import { motion } from "framer-motion";
-
-const stageThresholds = [0, 1000, 10000, 100000, 1000000];
-const stageNames = ["🌾 Село", "🏘️ Райцентр", "🏙️ Обл. центр", "🌆 Київ", "👑 Еліта"];
-const stageColors = ["#8B7355", "#A0522D", "#708090", "#4169E1", "#DAA520"];
+import { STAGE_COLORS, STAGE_NAMES, STAGE_THRESHOLDS } from "@/data/progression";
 
 interface StageProgressProps {
   stage: number;
@@ -10,8 +7,8 @@ interface StageProgressProps {
 }
 
 export function StageProgress({ stage, totalEarned }: StageProgressProps) {
-  const currentThreshold = stageThresholds[stage - 1] ?? 0;
-  const nextThreshold = stageThresholds[stage] ?? stageThresholds[stageThresholds.length - 1];
+  const currentThreshold = STAGE_THRESHOLDS[stage - 1] ?? 0;
+  const nextThreshold = STAGE_THRESHOLDS[stage] ?? STAGE_THRESHOLDS[STAGE_THRESHOLDS.length - 1];
   const rawProgress = stage >= 5
     ? 100
     : ((totalEarned - currentThreshold) / (nextThreshold - currentThreshold)) * 100;
@@ -23,11 +20,11 @@ export function StageProgress({ stage, totalEarned }: StageProgressProps) {
     <div className="w-full px-4 py-3 border-t border-foreground/10 bg-card">
       <div className="flex justify-between items-center mb-1.5">
         <span className="text-xs font-heading uppercase text-foreground tracking-wider">
-          {stageNames[stage - 1]}
+          {STAGE_NAMES[stage - 1]}
         </span>
         {stage < 5 ? (
           <span className="text-[10px] text-foreground/50 font-heading">
-            → {stageNames[stage]}
+            → {STAGE_NAMES[stage]}
           </span>
         ) : (
           <span className="text-[10px] text-yellow-600 font-heading uppercase">✓ Максимум!</span>
@@ -36,7 +33,7 @@ export function StageProgress({ stage, totalEarned }: StageProgressProps) {
       <div className="h-3 bg-foreground/10 border border-foreground/20 overflow-hidden" style={{ borderRadius: "2px" }}>
         <motion.div
           className="h-full"
-          style={{ backgroundColor: stageColors[stage - 1], borderRadius: "1px" }}
+          style={{ backgroundColor: STAGE_COLORS[stage - 1], borderRadius: "1px" }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         />

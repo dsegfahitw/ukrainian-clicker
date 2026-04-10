@@ -47,16 +47,16 @@ export function SkinCard({ skin, isSelected, isUnlocked, money, onBuy, onSelect 
       ) : isUnlocked ? (
         <button
           onClick={() => onSelect(skin.id)}
-          className="w-full py-1.5 bg-primary text-primary-foreground font-heading text-[10px] uppercase border border-foreground"
-          style={{ borderRadius: "2px", minHeight: "32px" }}
+          className="tap-target w-full py-1.5 bg-primary text-primary-foreground font-heading text-[10px] uppercase border border-foreground"
+          style={{ borderRadius: "2px" }}
         >
           Обрати
         </button>
       ) : skin.free ? (
         <button
           onClick={() => onBuy(skin.id)}
-          className="w-full py-1.5 bg-green-700 text-white font-heading text-[10px] uppercase"
-          style={{ borderRadius: "2px", minHeight: "32px" }}
+          className="tap-target w-full py-1.5 bg-green-700 text-white font-heading text-[10px] uppercase"
+          style={{ borderRadius: "2px" }}
         >
           Безкоштовно
         </button>
@@ -64,10 +64,10 @@ export function SkinCard({ skin, isSelected, isUnlocked, money, onBuy, onSelect 
         <button
           onClick={() => onBuy(skin.id)}
           disabled={!canAfford}
-          className={`w-full py-1.5 font-heading text-[10px] uppercase border ${
+          className={`tap-target w-full py-1.5 font-heading text-[10px] uppercase border ${
             canAfford ? "bg-card border-foreground/60 text-foreground" : "opacity-40 border-foreground/20 text-foreground/40"
           }`}
-          style={{ borderRadius: "2px", minHeight: "32px" }}
+          style={{ borderRadius: "2px" }}
         >
           {canAfford ? `₴${(skin.price || 0).toLocaleString()}` : `🔒 ₴${(skin.price || 0).toLocaleString()}`}
         </button>

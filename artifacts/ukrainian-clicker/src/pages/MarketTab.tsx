@@ -1,4 +1,4 @@
-import { memo } from "react";
+﻿import { memo } from "react";
 import { motion } from "framer-motion";
 import { marketItems } from "@/data/market";
 import type { GameState } from "@/hooks/useGameState";
@@ -58,12 +58,12 @@ function MarketTabInner({ state, onBuy }: MarketTabProps) {
                   <button
                     onClick={() => onBuy(item.id, item.basePrice, item.effect)}
                     disabled={!canAfford || isHealthFull}
-                    className={`px-3 py-1.5 font-heading text-[10px] uppercase border transition-all active:scale-95 ${
+                    className={`tap-target px-3 py-1.5 font-heading text-[10px] uppercase border transition-all active:scale-95 ${
                       canAfford && !isHealthFull
                         ? "bg-primary text-primary-foreground border-foreground"
                         : "bg-foreground/10 text-foreground/30 border-foreground/20"
                     }`}
-                    style={{ borderRadius: "2px", minHeight: "32px" }}
+                    style={{ borderRadius: "2px" }}
                   >
                     Купити
                   </button>
@@ -78,3 +78,4 @@ function MarketTabInner({ state, onBuy }: MarketTabProps) {
 }
 
 export const MarketTab = memo(MarketTabInner);
+

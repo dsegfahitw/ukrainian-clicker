@@ -1,7 +1,7 @@
-import { motion } from "framer-motion";
+﻿import { motion } from "framer-motion";
 import { achievements } from "@/data/achievements";
 import { DailyTasks } from "@/components/DailyTasks";
-import type { GameState, DailyTaskProgress } from "@/hooks/useGameState";
+import type { GameState } from "@/hooks/useGameState";
 import { getDailyTasksForDate } from "@/data/dailyTasks";
 
 interface SettingsTabProps {
@@ -14,8 +14,7 @@ interface SettingsTabProps {
 }
 
 export function SettingsTab({ state, onNewGame, onToggleSound, onToggleMusic, onClaimTask, onShowAds }: SettingsTabProps) {
-  const today = new Date().toISOString().split("T")[0];
-  const tasks = getDailyTasksForDate(today);
+  const tasks = getDailyTasksForDate(state.dailyTasksDate || `day-${state.day}`);
 
   const handleClaimTask = (taskId: string) => {
     const task = tasks.find((t) => t.id === taskId);
@@ -28,7 +27,7 @@ export function SettingsTab({ state, onNewGame, onToggleSound, onToggleMusic, on
         ⚙️ Налаштування
       </h2>
 
-      <DailyTasks taskProgress={state.dailyTaskProgress} onClaim={handleClaimTask} />
+      <DailyTasks taskCycleKey={state.dailyTasksDate || `day-${state.day}`} taskProgress={state.dailyTaskProgress} onClaim={handleClaimTask} />
 
       <div className="px-4 pb-4 space-y-3">
         <div className="border-game bg-card p-4" style={{ borderRadius: "2px" }}>
@@ -36,7 +35,7 @@ export function SettingsTab({ state, onNewGame, onToggleSound, onToggleMusic, on
           <div className="space-y-2">
             <button
               onClick={onToggleSound}
-              className={`w-full flex items-center justify-between py-2.5 px-3 border-2 font-heading text-sm uppercase transition-all ${
+              className={`tap-target w-full flex items-center justify-between py-2.5 px-3 border-2 font-heading text-sm uppercase transition-all ${
                 state.soundEnabled ? "bg-green-700 text-white border-green-900" : "bg-foreground/10 text-foreground/50 border-foreground/20"
               }`}
               style={{ borderRadius: "2px" }}
@@ -46,7 +45,7 @@ export function SettingsTab({ state, onNewGame, onToggleSound, onToggleMusic, on
             </button>
             <button
               onClick={onToggleMusic}
-              className={`w-full flex items-center justify-between py-2.5 px-3 border-2 font-heading text-sm uppercase transition-all ${
+              className={`tap-target w-full flex items-center justify-between py-2.5 px-3 border-2 font-heading text-sm uppercase transition-all ${
                 state.musicEnabled ? "bg-green-700 text-white border-green-900" : "bg-foreground/10 text-foreground/50 border-foreground/20"
               }`}
               style={{ borderRadius: "2px" }}
@@ -121,7 +120,7 @@ export function SettingsTab({ state, onNewGame, onToggleSound, onToggleMusic, on
             ))}
             <button
               onClick={onShowAds}
-              className="w-full py-2.5 bg-primary text-primary-foreground font-heading text-xs uppercase border-2 border-foreground active:scale-95 transition-all mt-2"
+              className="tap-target w-full py-2.5 bg-primary text-primary-foreground font-heading text-xs uppercase border-2 border-foreground active:scale-95 transition-all mt-2"
               style={{ borderRadius: "2px" }}
             >
               📺 Бонуси за рекламу
@@ -131,7 +130,7 @@ export function SettingsTab({ state, onNewGame, onToggleSound, onToggleMusic, on
 
         <button
           onClick={onNewGame}
-          className="w-full py-3 bg-red-800 hover:bg-red-700 text-white font-heading uppercase tracking-wider border-2 border-red-950 active:scale-95 transition-all"
+          className="tap-target w-full py-3 bg-red-800 hover:bg-red-700 text-white font-heading uppercase tracking-wider border-2 border-red-950 active:scale-95 transition-all"
           style={{ borderRadius: "2px" }}
         >
           Нова гра
@@ -140,3 +139,4 @@ export function SettingsTab({ state, onNewGame, onToggleSound, onToggleMusic, on
     </div>
   );
 }
+

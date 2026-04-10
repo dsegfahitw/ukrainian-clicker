@@ -11,7 +11,7 @@ interface ShopTabProps {
   onSelectSkin: (skinId: string) => void;
 }
 
-type Section = "market" | "skins" | "premium";
+type Section = "market" | "skins";
 
 function ShopTabInner({ state, onBuyMarket, onBuySkin, onSelectSkin }: ShopTabProps) {
   const [section, setSection] = useState<Section>("market");
@@ -21,13 +21,13 @@ function ShopTabInner({ state, onBuyMarket, onBuySkin, onSelectSkin }: ShopTabPr
     <div className="flex flex-col" style={{ minHeight: "calc(100vh - 120px)" }}>
       {/* Section Tabs */}
       <div className="flex border-b-2 border-foreground bg-card">
-        {(["market", "skins", "premium"] as Section[]).map((s) => {
-          const labels: Record<Section, string> = { market: "🛒 Ринок", skins: "👔 Образи", premium: "⭐ VIP" };
+        {(["market", "skins"] as Section[]).map((s) => {
+          const labels: Record<Section, string> = { market: "🛒 Ринок", skins: "👔 Образи" };
           return (
             <button
               key={s}
               onClick={() => setSection(s)}
-              className={`flex-1 py-2.5 font-heading text-[10px] uppercase tracking-wider transition-colors ${
+              className={`tap-target flex-1 py-2.5 font-heading text-[11px] uppercase tracking-wider transition-colors ${
                 section === s ? "bg-primary text-primary-foreground" : "text-foreground/50"
               }`}
             >
@@ -80,12 +80,12 @@ function ShopTabInner({ state, onBuyMarket, onBuySkin, onSelectSkin }: ShopTabPr
                         <button
                           onClick={() => onBuyMarket(item.id, item.basePrice, item.effect)}
                           disabled={!canAfford || isHealthFull}
-                          className={`px-3 py-1.5 font-heading text-[10px] uppercase border transition-all active:scale-95 ${
+                          className={`tap-target px-3 py-1.5 font-heading text-[10px] uppercase border transition-all active:scale-95 ${
                             canAfford && !isHealthFull
                               ? "bg-primary text-primary-foreground border-foreground"
                               : "bg-foreground/10 text-foreground/30 border-foreground/20"
                           }`}
-                          style={{ borderRadius: "2px", minHeight: "32px" }}
+                          style={{ borderRadius: "2px" }}
                         >
                           Купити
                         </button>
@@ -117,101 +117,6 @@ function ShopTabInner({ state, onBuyMarket, onBuySkin, onSelectSkin }: ShopTabPr
                 />
               ))}
             </div>
-          </div>
-        )}
-
-        {/* PREMIUM / VIP */}
-        {section === "premium" && (
-          <div className="space-y-4">
-            <div className="text-center text-xs text-foreground/50 font-heading mb-2">
-              Підтримати розробника та отримати переваги
-            </div>
-
-            {/* VIP Membership */}
-            <div
-              className="border-2 p-4"
-              style={{ borderColor: "#DAA520", borderRadius: "2px", background: "linear-gradient(135deg, #DAA52022, #111)" }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">⭐</span>
-                <div>
-                  <div className="font-heading text-sm uppercase" style={{ color: "#DAA520" }}>VIP Членство</div>
-                  <div className="text-[10px] text-foreground/50">$4.99 / місяць</div>
-                </div>
-              </div>
-              <ul className="space-y-1 mb-3">
-                {[
-                  "+20% до пасивного доходу",
-                  "+20% до заробітку на роботі",
-                  "Щоденний бонус ₴1,000",
-                  "Ексклюзивна золота тема",
-                  "Без реклами назавжди",
-                ].map((b) => (
-                  <li key={b} className="text-xs text-foreground/70 flex items-center gap-1.5">
-                    <span className="text-yellow-600">✓</span> {b}
-                  </li>
-                ))}
-              </ul>
-              <button
-                className="w-full py-3 font-heading text-sm uppercase tracking-wider border-2"
-                style={{
-                  borderRadius: "2px", minHeight: "52px",
-                  borderColor: "#DAA520", color: "#DAA520",
-                  background: "rgba(218,165,32,0.15)",
-                }}
-              >
-                ⭐ Стати VIP (незабаром)
-              </button>
-            </div>
-
-            {/* Remove Ads */}
-            <div className="border-game p-4 bg-card">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">🚫</span>
-                <div>
-                  <div className="font-heading text-sm uppercase">Без реклами</div>
-                  <div className="text-[10px] text-foreground/50">$2.99 — назавжди</div>
-                </div>
-              </div>
-              <p className="text-xs text-foreground/50 mb-3">
-                Вимкніть всю рекламу в грі. Назавжди. Жодного відволікання.
-              </p>
-              <button
-                className="w-full py-3 font-heading text-xs uppercase tracking-wider border-2 border-foreground/40 text-foreground/60"
-                style={{ borderRadius: "2px", minHeight: "48px" }}
-              >
-                Видалити рекламу (незабаром)
-              </button>
-            </div>
-
-            {/* Starter Pack */}
-            <div
-              className="border-2 p-4"
-              style={{ borderColor: "#ff6b35", borderRadius: "2px", background: "rgba(255,107,53,0.08)" }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">🎁</span>
-                <div>
-                  <div className="font-heading text-sm uppercase" style={{ color: "#ff6b35" }}>Стартовий пакет</div>
-                  <div className="text-[10px] text-foreground/50">$0.99 — одноразово</div>
-                </div>
-              </div>
-              <ul className="space-y-1 mb-3">
-                <li className="text-xs text-foreground/70">✓ +₴5,000 стартовий капітал</li>
-                <li className="text-xs text-foreground/70">✓ +50 HP</li>
-                <li className="text-xs text-foreground/70">✓ Скін «Бізнесмен» безкоштовно</li>
-              </ul>
-              <button
-                className="w-full py-3 font-heading text-xs uppercase tracking-wider border-2"
-                style={{ borderRadius: "2px", minHeight: "48px", borderColor: "#ff6b35", color: "#ff6b35" }}
-              >
-                Купити пакет (незабаром)
-              </button>
-            </div>
-
-            <p className="text-[9px] text-center text-foreground/30">
-              * Монетизація ще не активована. Внутрішньоігрові покупки з'являться у фінальній версії.
-            </p>
           </div>
         )}
       </div>

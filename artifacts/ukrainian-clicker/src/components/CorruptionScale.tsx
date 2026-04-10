@@ -1,8 +1,10 @@
+import { memo } from "react";
+
 interface CorruptionScaleProps {
   value: number;
 }
 
-export function CorruptionScale({ value }: CorruptionScaleProps) {
+function CorruptionScaleInner({ value }: CorruptionScaleProps) {
   const percentage = Math.min(100, Math.max(0, value));
   const skullSize = 12 + (percentage / 100) * 8;
 
@@ -28,3 +30,5 @@ export function CorruptionScale({ value }: CorruptionScaleProps) {
     </div>
   );
 }
+
+export const CorruptionScale = memo(CorruptionScaleInner);

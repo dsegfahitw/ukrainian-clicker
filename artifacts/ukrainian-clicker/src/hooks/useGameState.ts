@@ -6,7 +6,8 @@ import { skills as skillDefs } from "@/data/skills";
 import { achievements, type AchievementCheckState } from "@/data/achievements";
 import { dailyRewards, type DailyReward } from "@/data/dailyRewards";
 import { getDailyTasksForDate, type DailyTask } from "@/data/dailyTasks";
-import { bosses } from "@/data/bosses";
+import { bosses, type Boss } from "@/data/bosses";
+import { STAGE_THRESHOLDS } from "@/data/progression";
 
 export type AdModalType = "interstitial" | "rewarded" | null;
 
@@ -61,11 +62,24 @@ export interface GameState {
   unlockedSkins: string[];
   lastDayTickAt: number;
   vipActive: boolean;
+  adsRemoved: boolean;
 }
 
-const SAVE_VERSION = 3;
-const SAVE_KEY = "ukrainian_clicker_save_v3";
+export interface BossEncounter {
+  boss: Boss;
+  rewardPreview: {
+    money: number;
+    experience: number;
+    passiveBonus: number;
+    permanent?: string;
+  };
+}
+
+const SAVE_VERSION = 5;
+const SAVE_KEY = "ukrainets_save";
+const LEGACY_SAVE_KEYS = ["ukrainian_clicker_save_v3"];
 const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
+const DAY_DURATION_MS = 60_000;
 
 const initialState: GameState = {
   money: 150,
@@ -114,6 +128,7 @@ const initialState: GameState = {
   unlockedSkins: ["farmer"],
   lastDayTickAt: Date.now(),
   vipActive: false,
+  adsRemoved: false,
 };
 
 export interface OfflineData {
@@ -132,10 +147,12 @@ export interface AchievementUnlock {
 function sanitize(s: GameState): GameState {
   const nums: (keyof GameState)[] = ["money", "health", "reputation", "corruption", "experience", "level", "day", "totalEarned", "workClicks", "passiveIncome"];
   const out = { ...s };
+  const outRecord = out as unknown as Record<string, unknown>;
+  const initialRecord = initialState as unknown as Record<string, unknown>;
   for (const k of nums) {
     const v = out[k] as number;
     if (typeof v !== "number" || isNaN(v) || !isFinite(v)) {
-      (out as Record<string, unknown>)[k] = (initialState as Record<string, unknown>)[k];
+      outRecord[k as string] = initialRecord[k as string];
     }
   }
   // Clamp values
@@ -143,19 +160,36 @@ function sanitize(s: GameState): GameState {
   out.reputation = Math.max(0, Math.min(100, out.reputation));
   out.corruption = Math.max(0, Math.min(100, out.corruption));
   out.money = Math.max(0, out.money);
+  out.vipActive = Boolean(out.vipActive);
+  out.adsRemoved = Boolean(out.adsRemoved);
   return out;
 }
 
 function loadState(): (GameState & { _loadTime: number }) | null {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const activeRaw = localStorage.getItem(SAVE_KEY);
+    const legacyEntry = LEGACY_SAVE_KEYS
+      .map((k) => ({ key: k, raw: localStorage.getItem(k) }))
+      .find((entry) => !!entry.raw);
+    const raw = activeRaw || legacyEntry?.raw || null;
     if (!raw) return null;
     const parsed = JSON.parse(raw) as GameState;
     // Version check — reject saves from incompatible versions
     if (!parsed || typeof parsed !== "object") return null;
-    if ((parsed.saveVersion || 0) < SAVE_VERSION - 1) return null; // allow v2 → v3 migration
+    if ((parsed.saveVersion || 0) < SAVE_VERSION - 2) return null;
     const merged: GameState = { ...initialState, ...parsed, saveVersion: SAVE_VERSION };
-    return { ...sanitize(merged), _loadTime: parsed.lastSaved || Date.now() };
+    const sanitized = sanitize(merged);
+
+    if (!activeRaw || legacyEntry) {
+      localStorage.setItem(
+        SAVE_KEY,
+        JSON.stringify({ ...sanitized, lastSaved: parsed.lastSaved || Date.now(), saveVersion: SAVE_VERSION })
+      );
+      if (legacyEntry?.key) {
+        localStorage.removeItem(legacyEntry.key);
+      }
+    }
+    return { ...sanitized, _loadTime: parsed.lastSaved || Date.now() };
   } catch {
     return null;
   }
@@ -168,10 +202,10 @@ function saveState(state: GameState) {
 }
 
 function getStage(totalEarned: number): 1 | 2 | 3 | 4 | 5 {
-  if (totalEarned >= 1000000) return 5;
-  if (totalEarned >= 100000) return 4;
-  if (totalEarned >= 10000) return 3;
-  if (totalEarned >= 1000) return 2;
+  if (totalEarned >= STAGE_THRESHOLDS[4]) return 5;
+  if (totalEarned >= STAGE_THRESHOLDS[3]) return 4;
+  if (totalEarned >= STAGE_THRESHOLDS[2]) return 3;
+  if (totalEarned >= STAGE_THRESHOLDS[1]) return 2;
   return 1;
 }
 
@@ -181,21 +215,33 @@ export function getLevelXpNeeded(level: number): number {
 
 /** Compute upgrade cost for a business — single source of truth */
 export function getBusinessUpgradeCost(bizCost: number, currentLevel: number): number {
-  return Math.floor(bizCost * Math.pow(1.8, currentLevel));
+  return Math.floor(bizCost * Math.pow(3, currentLevel));
 }
 
 /** Compute the per-second passive income from all owned businesses */
-export function calculatePassiveIncome(ownedBiz: { id: string; level: number }[], marketingLevel: number): number {
+export function calculatePassiveIncome(
+  ownedBiz: { id: string; level: number }[],
+  marketingLevel: number,
+  modifiers?: { vipActive?: boolean; permanentBonuses?: string[] }
+): number {
   let total = 0;
   for (const ob of ownedBiz) {
     const biz = businesses.find((b) => b.id === ob.id);
     if (biz) total += biz.passiveIncome * Math.pow(2, ob.level - 1);
   }
-  return total * (1 + marketingLevel * 0.1);
+  const passiveBonusFromBosses =
+    (modifiers?.permanentBonuses?.includes("passive_boost_25") ? 0.25 : 0) +
+    (modifiers?.permanentBonuses?.includes("oligarch_network") ? 0.5 : 0);
+  const vipBonus = modifiers?.vipActive ? 0.2 : 0;
+  return total * (1 + marketingLevel * 0.1 + passiveBonusFromBosses + vipBonus);
 }
 
 function getTodayStr(): string {
   return new Date().toISOString().split("T")[0];
+}
+
+function getTaskCycleKey(day: number): string {
+  return `day-${day}`;
 }
 
 function checkNewAchievements(state: GameState): { state: GameState; newUnlocks: AchievementUnlock[] } {
@@ -229,12 +275,12 @@ function checkNewAchievements(state: GameState): { state: GameState; newUnlocks:
 }
 
 function initDailyTasksIfNeeded(state: GameState): GameState {
-  const today = getTodayStr();
-  if (state.dailyTasksDate === today && state.dailyTaskProgress.length > 0) return state;
-  const tasks = getDailyTasksForDate(today);
+  const cycleKey = state.dailyTasksDate || getTaskCycleKey(state.day);
+  if (state.dailyTasksDate === cycleKey && state.dailyTaskProgress.length > 0) return state;
+  const tasks = getDailyTasksForDate(cycleKey);
   return {
     ...state,
-    dailyTasksDate: today,
+    dailyTasksDate: cycleKey,
     dailyTaskProgress: tasks.map((t) => ({ id: t.id, progress: 0, completed: false, claimedReward: false })),
     sessionWorkClicks: 0, sessionSkillUpgrades: 0, sessionMarketPurchases: 0, sessionMoneyEarned: 0,
   };
@@ -245,9 +291,8 @@ function updateDailyTaskProgress(
   metric: "workClicks" | "skillUpgrades" | "marketPurchases" | "moneyEarned",
   amount: number
 ): GameState {
-  const today = getTodayStr();
-  if (state.dailyTasksDate !== today) return state;
-  const tasks = getDailyTasksForDate(today);
+  if (!state.dailyTasksDate) return state;
+  const tasks = getDailyTasksForDate(state.dailyTasksDate);
   const newProgress = state.dailyTaskProgress.map((p) => {
     const task = tasks.find((t) => t.id === p.id);
     if (!task || task.metric !== metric || p.completed) return p;
@@ -264,8 +309,9 @@ export function computeWorkEarnings(state: GameState): number {
   const workBootsBonus =
     (state.permanentBonuses.includes("work_earnings_10") ? 0.1 : 0) +
     (state.permanentBonuses.includes("work_earnings_20") ? 0.2 : 0);
+  const vipWorkBonus = state.vipActive ? 0.2 : 0;
   const baseEarn = job.earnPerShift + farmingBonus;
-  return Math.floor(baseEarn * (1 + workBootsBonus));
+  return Math.floor(baseEarn * (1 + workBootsBonus + vipWorkBonus));
 }
 
 export function useGameState() {
@@ -273,6 +319,10 @@ export function useGameState() {
     const saved = loadState();
     let s = saved ? ({ ...saved } as GameState) : { ...initialState };
     s = initDailyTasksIfNeeded(s);
+    s.passiveIncome = calculatePassiveIncome(s.ownedBusinesses, s.skills.marketing, {
+      vipActive: s.vipActive,
+      permanentBonuses: s.permanentBonuses,
+    });
     return s;
   });
 
@@ -287,6 +337,7 @@ export function useGameState() {
   const [showAdModal, setShowAdModal] = useState<AdModalType>(null);
   const [lastInterstitialTime, setLastInterstitialTime] = useState(Date.now());
   const [showNewDay, setShowNewDay] = useState(false);
+  const [activeBossEncounter, setActiveBossEncounter] = useState<BossEncounter | null>(null);
   const floatIdRef = useRef(0);
   // Keep a ref to latest state for the autosave interval (avoids stale closure)
   const stateRef = useRef(state);
@@ -302,7 +353,7 @@ export function useGameState() {
         Math.floor((Date.now() - saved._loadTime) / 1000),
         MAX_OFFLINE_SECONDS
       );
-      if (offlineSeconds > 60 && saved.passiveIncome > 0) {
+      if (offlineSeconds > 0 && saved.passiveIncome > 0) {
         const earnings = Math.floor(saved.passiveIncome * offlineSeconds);
         setOfflineData({ seconds: offlineSeconds, earnings });
         setShowOfflineModal(true);
@@ -354,6 +405,7 @@ export function useGameState() {
 
   // Interstitial ad timer
   useEffect(() => {
+    if (state.adsRemoved) return;
     const interval = setInterval(() => {
       if (Date.now() - lastInterstitialTime > 4 * 60 * 1000) {
         setShowAdModal("interstitial");
@@ -361,37 +413,75 @@ export function useGameState() {
       }
     }, 15_000);
     return () => clearInterval(interval);
-  }, [lastInterstitialTime]);
+  }, [lastInterstitialTime, state.adsRemoved]);
 
   // Day progression: 60 real seconds = 1 in-game day
   useEffect(() => {
     const interval = setInterval(() => {
       setState((prev) => {
         if (prev.gameOver) return prev;
-        const elapsed = Date.now() - prev.lastDayTickAt;
-        if (elapsed >= 60_000) {
-          const newDay = prev.day + 1;
-          setShowNewDay(true);
-          setTimeout(() => setShowNewDay(false), 3500);
-          // Small rest bonus each new day
-          const healthBonus = Math.min(5, 100 - prev.health);
-          return {
-            ...prev,
-            day: newDay,
-            lastDayTickAt: Date.now(),
-            health: prev.health + healthBonus,
-            // Reset daily session metrics so tasks can refresh naturally
-            sessionWorkClicks: 0,
-            sessionSkillUpgrades: 0,
-            sessionMarketPurchases: 0,
-            sessionMoneyEarned: 0,
-          };
+        const now = Date.now();
+        const elapsed = now - prev.lastDayTickAt;
+        const dayJumps = Math.floor(elapsed / DAY_DURATION_MS);
+        if (dayJumps <= 0) return prev;
+
+        const dailyPassive = Math.floor(prev.passiveIncome * 60);
+        const vipDailyBonus = prev.vipActive ? 1000 : 0;
+        const allDailyPayouts = dayJumps * (dailyPassive + vipDailyBonus);
+        const nextDay = prev.day + dayJumps;
+        const nextCycleKey = getTaskCycleKey(nextDay);
+        const refreshedTasks = getDailyTasksForDate(nextCycleKey).map((task) => ({
+          id: task.id,
+          progress: 0,
+          completed: false,
+          claimedReward: false,
+        }));
+
+        if (Math.random() < 0.35 && !currentEvent) {
+          const specialDailyEvents = events.filter((e) => e.id.startsWith("daily_"));
+          if (specialDailyEvents.length > 0) {
+            const randomEvent = specialDailyEvents[Math.floor(Math.random() * specialDailyEvents.length)];
+            setTimeout(() => setCurrentEvent(randomEvent), 300);
+          }
         }
-        return prev;
+
+        setShowNewDay(true);
+        setTimeout(() => setShowNewDay(false), 3500);
+
+        let s: GameState = {
+          ...prev,
+          day: nextDay,
+          lastDayTickAt: prev.lastDayTickAt + dayJumps * DAY_DURATION_MS,
+          health: Math.min(100, prev.health + dayJumps * 5),
+          money: prev.money + allDailyPayouts,
+          totalEarned: prev.totalEarned + allDailyPayouts,
+          dailyTasksDate: nextCycleKey,
+          dailyTaskProgress: refreshedTasks,
+          sessionWorkClicks: 0,
+          sessionSkillUpgrades: 0,
+          sessionMarketPurchases: 0,
+          sessionMoneyEarned: 0,
+        };
+        const newStage = getStage(s.totalEarned);
+        if (newStage > s.stage) {
+          setShowStageUp(true);
+          setTimeout(() => setShowStageUp(false), 3500);
+          let currencies = [...s.unlockedCurrencies];
+          if (newStage >= 3 && !currencies.includes("usd")) currencies.push("usd");
+          if (newStage >= 4 && !currencies.includes("eur")) currencies.push("eur");
+          if (newStage >= 5 && !currencies.includes("crypto")) currencies.push("crypto");
+          s = { ...s, stage: newStage as GameState["stage"], unlockedCurrencies: currencies, wonGame: s.wonGame || newStage === 5 };
+        }
+        const { state: achievedState, newUnlocks } = checkNewAchievements(s);
+        if (newUnlocks.length > 0) {
+          setAchievementQueue((prevQueue) => [...prevQueue, ...newUnlocks]);
+        }
+        s = achievedState;
+        return s;
       });
     }, 5_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentEvent]);
 
   const addMoneyFloat = useCallback((amount: number) => {
     const id = floatIdRef.current++;
@@ -439,6 +529,22 @@ export function useGameState() {
     return s;
   }, []);
 
+  // Passive income timer: single stable interval in game-state hook
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setState((prev) => {
+        if (prev.passiveIncome <= 0 || prev.gameOver) return prev;
+        const income = prev.passiveIncome;
+        addMoneyFloat(income);
+        let s = { ...prev, money: prev.money + income, totalEarned: prev.totalEarned + income };
+        s = checkStageUp(s);
+        s = updateDailyTaskProgress(s, "moneyEarned", income);
+        return s;
+      });
+    }, 1_000);
+    return () => clearInterval(interval);
+  }, [addMoneyFloat, checkStageUp]);
+
   const doWork = useCallback((onSound?: (s: "work_click" | "coin_gain" | "level_up") => void) => {
     setState((prev) => {
       if (prev.gameOver) return prev;
@@ -474,7 +580,7 @@ export function useGameState() {
       setTimeout(() => onSound?.("coin_gain"), 50);
 
       // 25% chance of random event
-      if (Math.random() < 0.25 && !s.gameOver) {
+      if (Math.random() < 0.25 && !s.gameOver && !currentEvent) {
         const availableEvents = events.filter((e) => {
           if (e.minStage && s.stage < e.minStage) return false;
           if (e.maxStage && s.stage > e.maxStage) return false;
@@ -488,7 +594,7 @@ export function useGameState() {
 
       return s;
     });
-  }, [addMoneyFloat, checkGameOver, checkLevelUp, checkStageUp, applyAchievements]);
+  }, [addMoneyFloat, checkGameOver, checkLevelUp, checkStageUp, applyAchievements, currentEvent]);
 
   const handleEventChoice = useCallback((choiceIndex: number) => {
     if (!currentEvent) return;
@@ -500,8 +606,9 @@ export function useGameState() {
       if (choice.effects.reputation) {
         const networkingBonus = 1 + s.skills.networking * 0.05;
         const suitBonus = s.permanentBonuses.includes("reputation_gain_15") ? 1.15 : 1;
+        const mediaBonus = s.permanentBonuses.includes("reputation_multiplier_20") ? 1.2 : 1;
         const repChange = choice.effects.reputation > 0
-          ? Math.floor(choice.effects.reputation * networkingBonus * suitBonus)
+          ? Math.floor(choice.effects.reputation * networkingBonus * suitBonus * mediaBonus)
           : choice.effects.reputation;
         s.reputation = Math.min(100, Math.max(0, s.reputation + repChange));
       }
@@ -539,11 +646,15 @@ export function useGameState() {
   const buyBusiness = useCallback((businessId: string, onSound?: () => void) => {
     setState((prev) => {
       const biz = businesses.find((b) => b.id === businessId);
-      if (!biz || prev.money < biz.cost || prev.level < biz.levelReq) return prev;
+      const levelGateBypassed = prev.permanentBonuses.includes("unlock_small_business") && biz?.id === "street_food";
+      if (!biz || prev.money < biz.cost || (!levelGateBypassed && prev.level < biz.levelReq)) return prev;
       if (prev.ownedBusinesses.some((b) => b.id === businessId)) return prev;
       if (biz.requiredSkill && (prev.skills[biz.requiredSkill] || 0) < 1) return prev;
       const newOwned = [...prev.ownedBusinesses, { id: businessId, level: 1 }];
-      const newPassive = calculatePassiveIncome(newOwned, prev.skills.marketing);
+      const newPassive = calculatePassiveIncome(newOwned, prev.skills.marketing, {
+        vipActive: prev.vipActive,
+        permanentBonuses: prev.permanentBonuses,
+      });
       onSound?.();
       let s: GameState = { ...prev, money: prev.money - biz.cost, ownedBusinesses: newOwned, passiveIncome: newPassive, experience: prev.experience + 50 };
       s = applyAchievements(s);
@@ -559,7 +670,10 @@ export function useGameState() {
       const cost = getBusinessUpgradeCost(biz.cost, owned.level);
       if (prev.money < cost) return prev;
       const newOwned = prev.ownedBusinesses.map((b) => b.id === businessId ? { ...b, level: b.level + 1 } : b);
-      const newPassive = calculatePassiveIncome(newOwned, prev.skills.marketing);
+      const newPassive = calculatePassiveIncome(newOwned, prev.skills.marketing, {
+        vipActive: prev.vipActive,
+        permanentBonuses: prev.permanentBonuses,
+      });
       onSound?.();
       let s: GameState = { ...prev, money: prev.money - cost, ownedBusinesses: newOwned, passiveIncome: newPassive, experience: prev.experience + 20 };
       s = applyAchievements(s);
@@ -576,7 +690,10 @@ export function useGameState() {
       const cost = Math.floor(skillDef.baseCost * Math.pow(1.5, currentLevel));
       if (prev.money < cost) return prev;
       const newSkills = { ...prev.skills, [skillId]: currentLevel + 1 };
-      const newPassive = calculatePassiveIncome(prev.ownedBusinesses, newSkills.marketing);
+      const newPassive = calculatePassiveIncome(prev.ownedBusinesses, newSkills.marketing, {
+        vipActive: prev.vipActive,
+        permanentBonuses: prev.permanentBonuses,
+      });
       onSound?.();
       let s: GameState = {
         ...prev, money: prev.money - cost, skills: newSkills, passiveIncome: newPassive,
@@ -682,6 +799,7 @@ export function useGameState() {
 
   const resetGame = useCallback(() => {
     localStorage.removeItem(SAVE_KEY);
+    LEGACY_SAVE_KEYS.forEach((key) => localStorage.removeItem(key));
     setState({ ...initialState });
     setCurrentEvent(null);
     setShowStageUp(false);
@@ -696,6 +814,7 @@ export function useGameState() {
 
   const startNewGame = useCallback(() => {
     localStorage.removeItem(SAVE_KEY);
+    LEGACY_SAVE_KEYS.forEach((key) => localStorage.removeItem(key));
     setState({ ...initialState });
     setCurrentEvent(null);
     setShowStageUp(false);
@@ -718,30 +837,87 @@ export function useGameState() {
   const challengeBoss = useCallback((bossId: string) => {
     const boss = bosses.find((b) => b.id === bossId);
     if (!boss) return;
-    setState((prev) => {
-      if (prev.defeatedBosses.includes(bossId)) return prev;
-      const r = boss.requirements;
-      if (r.reputation !== undefined && prev.reputation < r.reputation) return prev;
-      if (r.corruption !== undefined && prev.corruption < r.corruption) return prev;
-      if (r.money !== undefined && prev.money < r.money) return prev;
-      if (r.stage !== undefined && prev.stage < r.stage) return prev;
-      if (r.level !== undefined && prev.level < r.level) return prev;
-      if (r.skill && (prev.skills[r.skill.id] || 0) < r.skill.level) return prev;
+    const latest = stateRef.current;
+    if (latest.defeatedBosses.includes(bossId)) return;
+    const r = boss.requirements;
+    if (r.reputation !== undefined && latest.reputation < r.reputation) return;
+    if (r.corruption !== undefined && latest.corruption < r.corruption) return;
+    if (r.money !== undefined && latest.money < r.money) return;
+    if (r.stage !== undefined && latest.stage < r.stage) return;
+    if (r.level !== undefined && latest.level < r.level) return;
+    if (r.skill && (latest.skills[r.skill.id] || 0) < r.skill.level) return;
 
-      let s = { ...prev, defeatedBosses: [...prev.defeatedBosses, bossId] };
-      if (boss.reward.money) { s.money = s.money + boss.reward.money; s.totalEarned = s.totalEarned + boss.reward.money; }
+    setActiveBossEncounter({
+      boss,
+      rewardPreview: {
+        money: boss.reward.money || 0,
+        experience: boss.reward.experience || 0,
+        passiveBonus: boss.reward.passiveBonus || 0,
+        permanent: boss.reward.permanent,
+      },
+    });
+  }, []);
+
+  const resolveBossEncounter = useCallback((accepted: boolean) => {
+    if (!activeBossEncounter) return;
+    if (!accepted) {
+      setActiveBossEncounter(null);
+      return;
+    }
+    const { boss } = activeBossEncounter;
+    setState((prev) => {
+      if (prev.defeatedBosses.includes(boss.id)) return prev;
+      let s = { ...prev, defeatedBosses: [...prev.defeatedBosses, boss.id] };
+      if (boss.reward.money) {
+        s.money = s.money + boss.reward.money;
+        s.totalEarned = s.totalEarned + boss.reward.money;
+      }
       if (boss.reward.experience) s.experience = s.experience + boss.reward.experience;
       if (boss.reward.permanent && !s.permanentBonuses.includes(boss.reward.permanent)) {
         s.permanentBonuses = [...s.permanentBonuses, boss.reward.permanent];
       }
-      if (boss.reward.passiveBonus) {
-        s.passiveIncome = s.passiveIncome * (1 + boss.reward.passiveBonus);
+      if (boss.reward.permanent === "political_influence" && (s.skills.networking || 0) < 1) {
+        s.skills = { ...s.skills, networking: 1 };
       }
+      s.passiveIncome = calculatePassiveIncome(s.ownedBusinesses, s.skills.marketing, {
+        vipActive: s.vipActive,
+        permanentBonuses: s.permanentBonuses,
+      });
       s = checkLevelUp(s);
       s = applyAchievements(s);
       return s;
     });
-  }, [checkLevelUp, applyAchievements]);
+    setActiveBossEncounter(null);
+  }, [activeBossEncounter, checkLevelUp, applyAchievements]);
+
+  const takeRest = useCallback(() => {
+    setState((prev) => {
+      if (prev.gameOver) return prev;
+      return {
+        ...prev,
+        health: Math.min(100, prev.health + 12),
+        reputation: Math.max(0, prev.reputation - 1),
+      };
+    });
+  }, []);
+
+  const purchaseRemoveAds = useCallback(() => {
+    setState((prev) => ({ ...prev, adsRemoved: true }));
+  }, []);
+
+  const activateVipMembership = useCallback(() => {
+    setState((prev) => {
+      if (prev.vipActive) return prev;
+      const updated = { ...prev, vipActive: true };
+      return {
+        ...updated,
+        passiveIncome: calculatePassiveIncome(updated.ownedBusinesses, updated.skills.marketing, {
+          vipActive: true,
+          permanentBonuses: updated.permanentBonuses,
+        }),
+      };
+    });
+  }, []);
 
   const buySkin = useCallback((skinId: string, price: number) => {
     setState((prev) => {
@@ -777,7 +953,9 @@ export function useGameState() {
     showResumeModal,
     showAdModal,
     showNewDay,
+    activeBossEncounter,
     doWork,
+    takeRest,
     handleEventChoice,
     setActiveJob,
     buyBusiness,
@@ -801,6 +979,9 @@ export function useGameState() {
     getLevelXpNeeded,
     processAchievements,
     challengeBoss,
+    resolveBossEncounter,
+    purchaseRemoveAds,
+    activateVipMembership,
     buySkin,
     selectSkin,
   };

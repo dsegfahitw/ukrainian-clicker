@@ -17,6 +17,7 @@ export function LevelUpFlash({ level }: LevelUpFlashProps) {
       return () => clearTimeout(t);
     }
     setPrevLevel(level);
+    return undefined;
   }, [level, prevLevel]);
 
   return (

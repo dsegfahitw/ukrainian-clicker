@@ -47,3 +47,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Local JDK bundles (do not commit)
+jdk*
+*.zip

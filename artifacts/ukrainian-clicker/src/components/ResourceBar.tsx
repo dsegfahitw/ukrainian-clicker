@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useRef, useEffect, useState } from "react";
+import { memo, useRef, useEffect, useState } from "react";
 
 interface ResourceBarProps {
   icon: string;
@@ -10,7 +10,7 @@ interface ResourceBarProps {
   showExact?: boolean;
 }
 
-export function ResourceBar({ icon, value, maxValue, color, label, showExact }: ResourceBarProps) {
+function ResourceBarInner({ icon, value, maxValue, color, label, showExact }: ResourceBarProps) {
   const percentage = Math.min(100, Math.max(0, (value / maxValue) * 100));
   const [pulse, setPulse] = useState(false);
   const prevRef = useRef(value);
@@ -23,6 +23,7 @@ export function ResourceBar({ icon, value, maxValue, color, label, showExact }: 
       return () => clearTimeout(t);
     }
     prevRef.current = value;
+    return undefined;
   }, [value]);
 
   const isLow = !showExact && percentage <= 20;
@@ -56,3 +57,5 @@ export function ResourceBar({ icon, value, maxValue, color, label, showExact }: 
     </div>
   );
 }
+
+export const ResourceBar = memo(ResourceBarInner);

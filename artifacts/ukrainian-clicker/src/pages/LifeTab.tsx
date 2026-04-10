@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import { StageProgress } from "@/components/StageProgress";
 import { computeWorkEarnings, getLevelXpNeeded } from "@/hooks/useGameState";
@@ -18,12 +18,14 @@ const stageLocationNames = ["Село", "Райцентр", "Обласний ц
 interface LifeTabProps {
   state: GameState;
   onWork: () => void;
+  onRest: () => void;
+  onInvest: () => void;
 }
 
-function LifeTabInner({ state, onWork }: LifeTabProps) {
+function LifeTabInner({ state, onWork, onRest, onInvest }: LifeTabProps) {
   const activeJob = jobs.find((j) => j.id === state.activeJobId) || jobs[0];
-  const earn = computeWorkEarnings(state);
-  const xpNeeded = getLevelXpNeeded(state.level);
+  const earn = useMemo(() => computeWorkEarnings(state), [state]);
+  const xpNeeded = useMemo(() => getLevelXpNeeded(state.level), [state.level]);
   const xpProgress = Math.min(100, (state.experience / xpNeeded) * 100);
 
   return (
@@ -65,18 +67,35 @@ function LifeTabInner({ state, onWork }: LifeTabProps) {
         </div>
 
         <motion.button
-          whileTap={{ scale: 0.88 }}
+          whileTap={{ scale: 0.95 }}
           onClick={onWork}
           disabled={state.gameOver}
-          className="relative bg-primary hover:bg-primary/90 text-primary-foreground font-heading text-xl uppercase tracking-wider px-10 py-5 border-4 border-foreground shadow-lg transition-colors disabled:opacity-50"
-          style={{ borderRadius: "2px", minHeight: "64px" }}
+          className="tap-target relative bg-primary hover:bg-primary/90 text-primary-foreground font-heading text-xl uppercase tracking-wider px-10 py-5 border-4 border-foreground shadow-lg transition-colors disabled:opacity-50"
+          style={{ borderRadius: "8px" }}
         >
           <span className="mr-2">💪</span>
           Працювати
-          <div className="absolute -top-2 -right-2 bg-accent text-foreground text-[10px] font-bold px-1.5 py-0.5" style={{ borderRadius: "2px" }}>
+          <div className="absolute -top-2 -right-2 bg-accent text-foreground text-[10px] font-bold px-1.5 py-0.5" style={{ borderRadius: "4px" }}>
             +₴{earn}
           </div>
         </motion.button>
+
+        <div className="mt-3 grid grid-cols-2 gap-2 w-full px-4">
+          <button
+            onClick={onRest}
+            className="tap-target border-2 border-foreground/40 bg-card/80 font-heading text-xs uppercase tracking-wider"
+            style={{ borderRadius: "8px" }}
+          >
+            😌 Відпочити
+          </button>
+          <button
+            onClick={onInvest}
+            className="tap-target border-2 border-green-900 bg-green-700 text-white font-heading text-xs uppercase tracking-wider"
+            style={{ borderRadius: "8px" }}
+          >
+            📈 Інвестувати
+          </button>
+        </div>
 
         <div className="mt-3 flex items-center gap-3 flex-wrap justify-center">
           <span className="text-white/80 text-xs bg-black/30 px-2 py-1" style={{ borderRadius: "2px" }}>

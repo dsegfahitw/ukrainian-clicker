@@ -32,6 +32,36 @@ export interface GameEvent {
 
 export const events: GameEvent[] = [
   {
+    id: "daily_sunrise_market",
+    title: "Ранок на базарі",
+    description: "На базарі з самого ранку ажіотаж. Можеш підхопити халтуру або відстояти чергу за кавою й перепочити.",
+    emoji: "🌅",
+    choices: [
+      { label: "Вийти на підробіток", emoji: "💼", type: "honest", effects: { money: 350, experience: 12 } },
+      { label: "Відпочити з кавою", emoji: "☕", type: "honest", effects: { health: 14, reputation: 2 } },
+    ],
+  },
+  {
+    id: "daily_communal_chaos",
+    title: "Комунальний квест",
+    description: "У ЖЕКу зависла довідка. Можеш вирішити все офіційно або прискорити через знайомого.",
+    emoji: "🧾",
+    choices: [
+      { label: "Йти по закону", emoji: "😇", type: "honest", effects: { reputation: 10, experience: 10 } },
+      { label: "Через знайомого", emoji: "😏", type: "corrupt", effects: { money: 180, corruption: 8, reputation: -2 } },
+    ],
+  },
+  {
+    id: "daily_courier_rush",
+    title: "Пік замовлень",
+    description: "Bolt Food горить червоним, замовлення сипляться одне за одним. Шанс заробити є, але ноги відпадуть.",
+    emoji: "🛵",
+    choices: [
+      { label: "Брати всі замовлення", emoji: "🔥", type: "honest", effects: { money: 420, health: -12, experience: 14 } },
+      { label: "Зменшити темп", emoji: "🫶", type: "honest", effects: { health: 8, money: 120, reputation: 4 } },
+    ],
+  },
+  {
     id: "neighbor_favor",
     title: "Сусід просить допомоги",
     description: "Сусід Василь потребує допомоги з дозволом на будівництво. Можеш допомогти через офіційні канали або дати хабар чиновнику.",
